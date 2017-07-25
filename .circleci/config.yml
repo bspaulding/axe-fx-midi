@@ -1,19 +1,14 @@
-# Clojure CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-clojure/ for more details
-#
 version: 2
 jobs:
   build:
     docker:
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      - image: circleci/clojure:boot-2.7.1
+      - image: clojure:boot-2.7.1-alpine
 
-    working_directory: ~/repo
+    working_directory: ~/project
 
     environment:
-      JVM_OPTS: -Xmx3200m
+      BOOT_JVM_OPTIONS: "-Xms512m -Xmx1024m"
+      BOOT_WATCHERS_DISABLE: "yes"
 
     steps:
       - checkout
@@ -21,7 +16,7 @@ jobs:
       # Download and cache dependencies
       - restore_cache:
           keys:
-          - v1-dependencies-{{ checksum "build.boot" }}
+          - v1-dependencies-{{ checksum "boot.properties" }}-{{ checksum "build.boot" }}
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
@@ -30,4 +25,6 @@ jobs:
       - save_cache:
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ checksum "build.boot" }}
+            - ~/.boot/cache/lib
+            - ~/.boot/cache/bin
+          key: v1-dependencies-{{ checksum "boot.properties" }}-{{ checksum "build.boot" }}
