@@ -2,7 +2,76 @@
 
 (def group-by-effect-id
   {106 :amp
-   127 :vol})
+	 107 :amp
+	 108 :cab
+	 109 :cab
+	 116 :chorus
+	 117 :chorus
+	 100 :compressor
+	 101 :compressor
+	 141 :controllers
+	 148 :crossover
+	 149 :crossover
+	 112 :delay
+	 113 :delay
+	 131 :filter
+	 132 :filter
+	 133 :drive
+	 134 :drive
+	 135 :enhancer
+	 136 :fx-loop
+	 142 :feedback-send
+	 143 :feedback-return
+	 164 :filter
+	 165 :filter
+	 118 :flanger
+	 119 :flanger
+	 126 :formant
+	 150 :gate-expander
+	 151 :gate-expander
+	 102 :graphic-eq
+	 103 :graphic-eq
+	 160 :graphic-eq
+	 161 :graphic-eq
+	 139 :input-noise-gate
+	 169 :looper
+	 147 :mega-tap-delay
+	 137 :mixer
+	 138 :mixer
+	 114 :multi-delay
+	 115 :multi-delay
+	 154 :multi-band-compressor
+	 155 :multi-band-compressor
+	 140 :output
+	 104 :parametric-eq
+	 105 :parametric-eq
+	 162 :parametric-eq
+	 163 :parametric-eq
+	 122 :phaser
+	 123 :phaser
+	 130 :pitch
+	 153 :pitch
+	 156 :quad-chorus
+	 157 :quad-chorus
+	 158 :resonator
+	 159 :resonator
+	 110 :reverb
+	 111 :reverb
+	 152 :ring-modulator
+	 120 :rotary-speaker
+	 121 :rotary-speaker
+	 144 :synth
+	 145 :synth
+	 170 :tone-match
+	 128 :tremolo-panner
+	 129 :tremolo-panner
+	 146 :vocoder
+	 127 :volume
+	 166 :volume
+	 167 :volume
+	 168 :volume
+	 124 :wah
+	 125 :wah})
 
 (def parameters-by-group
   {:amp {0 "Effect Type"
@@ -100,14 +169,14 @@
          114 "PI Bias Shift"
          115 "Motor Drive"
          116 "Motor Time Const"}
-    :vol {0 "Volume"
-          1 "Balance"
-          2 "Volume Taper"
-          4 "Pan Left"
-          5 "Pan Right"
-          6 "Level"
-          7 "Bypass Mode"
-          8 "Input Select"}})
+    :volume {0 "Volume"
+						 1 "Balance"
+						 2 "Volume Taper"
+						 4 "Pan Left"
+						 5 "Pan Right"
+						 6 "Level"
+						 7 "Bypass Mode"
+						 8 "Input Select"}})
 
 (defn parameter-name [effect-id parameter-id]
   (get-in parameters-by-group [(group-by-effect-id effect-id) parameter-id]))
