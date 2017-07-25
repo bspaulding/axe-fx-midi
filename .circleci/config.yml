@@ -1,0 +1,30 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: clojure:boot-2.7.1-alpine
+
+    working_directory: ~/project
+
+    environment:
+      BOOT_JVM_OPTIONS: "-Xms512m -Xmx1024m"
+      BOOT_WATCHERS_DISABLE: "yes"
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "boot.properties" }}-{{ checksum "build.boot" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run: boot testing test
+
+      - save_cache:
+          paths:
+            - ~/.m2
+            - ~/.boot/cache/lib
+            - ~/.boot/cache/bin
+          key: v1-dependencies-{{ checksum "boot.properties" }}-{{ checksum "build.boot" }}
