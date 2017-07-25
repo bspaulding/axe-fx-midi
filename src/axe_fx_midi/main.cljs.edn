@@ -1,0 +1,3 @@
+{:main axe-fx-midi.main
+ :compiler-options {:optimizations :simple
+										:target :nodejs}}
