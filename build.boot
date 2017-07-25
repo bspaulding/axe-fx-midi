@@ -36,3 +36,9 @@
 (deftask testing []
   (set-env! :source-paths #(conj % "test"))
   identity)
+
+(deftask tdd []
+	(comp (testing)
+				(watch)
+				(test)
+				(test-cljs)))
