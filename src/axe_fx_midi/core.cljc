@@ -282,7 +282,7 @@
     :batch-list-request-complete {}
     :get-block-parameters-list (decode-block-parameters-list (drop 6 msg))
     :get-set-block-parameter-value (apply decode-block-parameter-value (take 7 (drop 6 msg)))
-    :get-set-modifier-value (apply decode-get-set-modifier-value (drop 6 msg))
+    :get-set-modifier-value (apply decode-get-set-modifier-value (take 9 (drop 6 msg)))
     :midi-looper-status (apply decode-midi-looper-status (take 2 (drop 6 msg)))
     :get-block-xy (apply decode-get-block-xy (take 3 (drop 6 msg)))
     :get-cpu-usage {:value (first (drop 6 msg))}

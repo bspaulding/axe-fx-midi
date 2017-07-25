@@ -1,6 +1,6 @@
 (ns axe-fx-midi.core-test
-  (:require-macros [cljs.test :refer [deftest testing is]])
-  (:require [cljs.test :as t]
+  (:require #?(:cljs [cljs.test :as t :refer-macros [deftest testing is]]
+							 :clj  [clojure.test :as t :refer [deftest testing is]])
             [axe-fx-midi.core :as axe-fx]
             [axe-fx-midi.models :refer [models]]))
 
