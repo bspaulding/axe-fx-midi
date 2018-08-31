@@ -1,0 +1,24 @@
+{
+  "name": "axe-fx-midi",
+  "version": "1.0.0",
+  "description": "[![Clojars Project](https://img.shields.io/clojars/v/bspaulding/axe-fx-midi.svg)](https://clojars.org/bspaulding/axe-fx-midi)",
+  "main": "target/bundle.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "build": "boot npm cljs target",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bspaulding/axe-fx-midi.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bspaulding/axe-fx-midi/issues"
+  },
+  "homepage": "https://github.com/bspaulding/axe-fx-midi#readme"
+}

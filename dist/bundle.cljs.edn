@@ -1,0 +1,3 @@
+{:require [axe-fx-midi.npm]
+ :optimizations :advanced
+ :compiler-options {:fn-invoke-direct true}}

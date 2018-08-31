@@ -1,0 +1,6 @@
+*
+!target/bundle.js
+!package.json
+!package-lock.json
+!LICENSE
+!README
