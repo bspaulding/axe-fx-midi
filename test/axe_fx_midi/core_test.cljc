@@ -1,8 +1,9 @@
 (ns axe-fx-midi.core-test
   (:require #?(:cljs [cljs.test :as t :refer-macros [deftest testing is]]
-							 :clj  [clojure.test :as t :refer [deftest testing is]])
+               :clj  [clojure.test :as t :refer [deftest testing is]])
             [axe-fx-midi.core :as axe-fx]
-            [axe-fx-midi.models :refer [models]]))
+            [axe-fx-midi.models :refer [models]]
+            [axe-fx-midi.ascii :refer [string-to-ascii]]))
 
 (deftest test-checksum []
   (is (= 0x09 (axe-fx/checksum [0xF0 0x00 0x01 0x74 0x03 0x0F 0xF7]))))
@@ -35,7 +36,9 @@
   (let [model (:ii models)
         msg [0xF0 0x00 0x01 0x74 model 0x09 0x43 0x68 0x61 0x6E 0x67 0x65 0x64 0x21 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x6C 0xF7]]
     (is (= msg
-           (axe-fx/set-preset-name model "Changed!")))))
+           (axe-fx/set-preset-name model "Changed!")))
+    (is (= (axe-fx/wrap (concat [model 0x09] (string-to-ascii "O Praise The Name (Anstasis)    ")))
+           (axe-fx/set-preset-name model "O Praise The Name (Anástasis)")))))
 
 (deftest test-parse-get-preset-name []
   (let [msg [240 0 1 116 3 15 66 83 32 65 67 50 48 32 66 97 115 101 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 0 13 247]]

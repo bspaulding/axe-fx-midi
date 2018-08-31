@@ -2,7 +2,7 @@
   (:require [clojure.string :refer [trimr]]
             [axe-fx-midi.parameters :refer [parameter-name]]
             [axe-fx-midi.modifiers :refer [modifier-parameter]]
-            [axe-fx-midi.ascii :refer [string-to-ascii]]
+            [axe-fx-midi.ascii :refer [string-to-ascii safe-string-to-ascii ascii-to-string]]
             [axe-fx-midi.encoders :refer [encode-effect-id encode-parameter-value encode-typed-parameter-value]]
             [axe-fx-midi.models :refer [models]]
             [axe-fx-midi.blocks :refer [name-for-effect-id]]))
@@ -26,8 +26,9 @@
   (wrap [model 0x0F]))
 
 (defn ^:export set-preset-name [model name]
-  (let [pad (apply str (repeat (- 32 (count name)) " "))
-        padded-name (str name pad)
+  (let [safe-name (ascii-to-string (safe-string-to-ascii name))
+        pad (apply str (repeat (- 32 (count safe-name)) " "))
+        padded-name (str safe-name pad)
         final-name (apply str (take 32 padded-name))]
     (wrap (concat [model 0x09] (string-to-ascii final-name)))))
 
