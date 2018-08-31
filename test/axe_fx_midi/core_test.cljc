@@ -17,9 +17,9 @@
 
 (deftest test-set-preset-number []
   (let [model (:ii models)]
-    (is (= [0xF0 0x00 0x01 0x74 model 0x3C 127 0 69 0xF7]
+    (is (= [0xF0 0x00 0x01 0x74 model 0x3C 0 127 69 0xF7]
            (axe-fx/set-preset-number model 127)))
-    (is (= [0xF0 0x00 0x01 0x74 model 0x3C 0 1 59 0xF7]
+    (is (= [0xF0 0x00 0x01 0x74 model 0x3C 1 0 59 0xF7]
            (axe-fx/set-preset-number model 128)))))
 
 (deftest test-parse-message-preset-number []
@@ -33,9 +33,9 @@
 
 (deftest test-set-preset-name []
   (let [model (:ii models)
-        msg [0xF0 0x00 0x01 0x74 model 0x09 97 115 99 105 105 0xF7]]
-    (is (= (axe-fx/with-checksum msg)
-           (axe-fx/set-preset-name model "ascii")))))
+        msg [0xF0 0x00 0x01 0x74 model 0x09 0x43 0x68 0x61 0x6E 0x67 0x65 0x64 0x21 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x20 0x6C 0xF7]]
+    (is (= msg
+           (axe-fx/set-preset-name model "Changed!")))))
 
 (deftest test-parse-get-preset-name []
   (let [msg [240 0 1 116 3 15 66 83 32 65 67 50 48 32 66 97 115 101 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 32 0 13 247]]
@@ -520,3 +520,13 @@
 (deftest test-set-target-block []
   (let [msg (axe-fx/with-checksum [240 0 1 116 3 0x37 0 1 0xF7])]
     (is (= msg (axe-fx/set-target-block 3 128)))))
+
+(deftest test-decode-preset-number
+  (is (= 217 (axe-fx/decode-preset-number 0x01 0x59))))
+
+(deftest test-encode-preset-number []
+  (is (= [0x01 0x59] (axe-fx/encode-preset-number 217))))
+
+(deftest test-save-preset []
+  (let [msg [0xF0 0x00 0x01 0x74 0x03 0x1D 0x01 0x59 0x43 0xF7]]
+    (is (= msg (axe-fx/store-in-preset 3 217)))))

@@ -22,96 +22,92 @@
   [msg]
   (with-checksum (concat header msg [0xF7])))
 
-(defn get-preset-number [model]
-  (wrap [model 0x14]))
-
-(defn set-preset-number [model n]
-  (let [[a b] (encode-effect-id n)]
-    (wrap [model 0x3C a b])))
-
-(defn get-preset-name [model]
+(defn ^:export get-preset-name [model]
   (wrap [model 0x0F]))
 
-(defn set-preset-name [model name]
-  (wrap (concat [model 0x09] (string-to-ascii name))))
+(defn ^:export set-preset-name [model name]
+  (let [pad (apply str (repeat (- 32 (count name)) " "))
+        padded-name (str name pad)
+        final-name (apply str (take 32 padded-name))]
+    (wrap (concat [model 0x09] (string-to-ascii final-name)))))
 
-(defn get-firmware-version [model]
+(defn ^:export get-firmware-version [model]
   (wrap [model 0x08]))
 
-(defn disconnect-from-controller [model]
+(defn ^:export disconnect-from-controller [model]
   (wrap [model 0x42]))
 
-(defn get-midi-channel [model]
+(defn ^:export get-midi-channel [model]
   (wrap [model 0x17]))
 
-(defn tuner-toggle [mchan on]
+(defn ^:export tuner-toggle [mchan on]
   [(+ 176 (- mchan 1)) 15 (if on 127 0)])
 
-(defn metronome-toggle [mchan on]
+(defn ^:export metronome-toggle [mchan on]
   [(+ 176 (- mchan 1)) 122 (if on 127 0)])
 
-(defn get-preset-blocks-flags [model]
+(defn ^:export get-preset-blocks-flags [model]
   (wrap [model 0x0E]))
 
-(defn set-scene-number [model scene]
+(defn ^:export set-scene-number [model scene]
   (wrap [model 0x29 scene]))
 
-(defn get-grid-layout-and-routing [model]
+(defn ^:export get-grid-layout-and-routing [model]
   (wrap [model 0x20]))
 
-(defn get-block-parameters-list [model block-id]
+(defn ^:export get-block-parameters-list [model block-id]
   (let [[a b] (encode-effect-id block-id)]
     (wrap [model 0x01 a b])))
 
-(defn get-block-parameter-value [model effect-id parameter-id]
+(defn ^:export get-block-parameter-value [model effect-id parameter-id]
   (let [[a b] (encode-effect-id effect-id)
         [c d] (encode-effect-id parameter-id)]
     (wrap [model 0x02 a b c d 0 0 0 0])))
 
-(defn set-block-parameter-value [model effect-id parameter-id value]
+(defn ^:export set-block-parameter-value [model effect-id parameter-id value]
   (let [[a b] (encode-effect-id effect-id)
         [c d] (encode-effect-id parameter-id)
         [e f g] (encode-parameter-value value)]
     (wrap [model 0x02 a b c d e f g 1])))
 
-(defn set-tempo [model bpm]
+(defn ^:export set-tempo [model bpm]
   (set-block-parameter-value model 141 32 bpm))
 
-(defn set-typed-block-parameter-value
+(defn ^:export set-typed-block-parameter-value
   [model effect-id parameter-id value]
   (let [[a b] (encode-effect-id effect-id)
         [c d] (encode-effect-id parameter-id)
         [e f g h i] (encode-typed-parameter-value value)]
     (wrap [model 0x2E a b c d e f g h i])))
 
-(defn get-modifier-value
+(defn ^:export get-modifier-value
   [model effect-id parameter-id selector-id]
   (let [[a b] (encode-effect-id effect-id)
         [c d] (encode-effect-id parameter-id)]
     (wrap [model 0x07 a b c d selector-id 0 0 0 0 0])))
 
-(defn set-modifier-value
+(defn ^:export set-modifier-value
   [model effect-id parameter-id selector-id value]
   (let [[a b] (encode-effect-id effect-id)
         [c d] (encode-effect-id parameter-id)
         [e f g] (encode-parameter-value value)]
     (wrap [model 0x07 a b c d selector-id 0 e f g 1])))
 
-(defn midi-looper-status-enable [model]
+(defn ^:export midi-looper-status-enable [model]
   (wrap [model 0x23 1]))
 
-(defn midi-looper-status-disable [model]
+(defn ^:export midi-looper-status-disable [model]
   (wrap [model 0x23 0]))
 
-(defn get-block-xy [model effect-id]
+(defn ^:export get-block-xy [model effect-id]
   (let [[a b] (encode-effect-id effect-id)]
     (wrap [model 0x11 a b 0 0])))
 
-(defn set-block-x [model effect-id]
+(defn ^:export set-block-x [model effect-id]
   (let [[a b] (encode-effect-id effect-id)]
     (wrap [model 0x11 a b 0 1])))
 
-(defn set-block-y [model effect-id]
+(defn ^:export set-block-y [model effect-id]
   (let [[a b] (encode-effect-id effect-id)]
     (wrap [model 0x11 a b 1 1])))
 
@@ -128,6 +124,7 @@
    0x11 :get-block-xy
    0x13 :get-cpu-usage
    0x17 :get-midi-channel
+   0x1D :store-preset
    0x20 :get-grid-layout-and-routing
    0x21 :front-panel-change-detected
    0x23 :midi-looper-status
@@ -145,6 +142,18 @@
   "(lsb & 0x7F) << 7 | rsb"
   [lsb rsb]
   (bit-or (bit-shift-left (bit-and lsb 0x7F) 7) rsb))
+
+(defn encode-preset-number
+  "?"
+  [n]
+  [(bit-shift-right n 7) (bit-and n 0x7F)])
+
+(defn ^:export get-preset-number [model]
+  (wrap [model 0x14]))
+
+(defn ^:export set-preset-number [model n]
+  (let [[a b] (encode-preset-number n)]
+    (wrap [model 0x3C a b])))
 
 (defn decode-preset-name [bytes]
   (let [chars (take-while #(not (= 0 %)) bytes)]
@@ -251,15 +260,18 @@
   (let [value (if bypass 1 0)]
     (set-block-parameter-value model effect-id 255 value)))
 
-(defn get-cpu-usage [model]
+(defn ^:export get-cpu-usage [model]
   (wrap [model 0x13]))
 
-(defn get-preset-edited-status [model]
+(defn ^:export get-preset-edited-status [model]
   (wrap [model 0x2A]))
 
-(defn set-target-block [model effect-id]
+(defn ^:export set-target-block [model effect-id]
   (let [[a b] (encode-effect-id effect-id)]
     (wrap [model 0x37 a b])))
+
+(defn ^:export store-in-preset [model preset]
+  (wrap (concat [model 0x1D] (encode-preset-number preset))))
 
 (defn payload-for-msg [type msg]
   (case type
@@ -289,7 +301,7 @@
     :get-preset-edited-status {:value (= 1 (first (drop 6 msg)))}
     {:msg msg}))
 
-(defn parse-message
+(defn ^:export parse-message
   "Takes a vector of bytes as a message. Returns a map of message info."
   [msg]
   (let [function-id (first (drop 5 msg))
