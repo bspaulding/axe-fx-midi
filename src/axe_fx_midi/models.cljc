@@ -9,4 +9,5 @@
              :ii-xl 0x06
              :ii-xl-plus 0x07
              :ax8 0x08
-             :fx8mk2 0x0A})
+             :fx8mk2 0x0A
+             :iii 0x10})
