@@ -1,6 +1,6 @@
 {
   "name": "axe-fx-midi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "[![Clojars Project](https://img.shields.io/clojars/v/bspaulding/axe-fx-midi.svg)](https://clojars.org/bspaulding/axe-fx-midi)",
   "main": "target/bundle.js",
   "directories": {
