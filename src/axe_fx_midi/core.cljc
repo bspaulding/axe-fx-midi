@@ -74,6 +74,9 @@
 (defn ^:export set-tempo [model bpm]
   (set-block-parameter-value model 141 32 bpm))
 
+(defn ^:export get-tempo [model]
+  (get-block-parameter-value model 141 32))
+
 (defn ^:export set-typed-block-parameter-value
   [model effect-id parameter-id value]
   (let [[a b] (encode-effect-id effect-id)

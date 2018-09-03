@@ -17,6 +17,7 @@
 (defexport getModifierValue axefx/get-modifier-value)
 (defexport setTypedBlockParameterValue axefx/set-typed-block-parameter-value)
 (defexport setTempo axefx/set-tempo)
+(defexport getTempo axefx/get-tempo)
 (defexport setBlockParameterValue axefx/set-block-parameter-value)
 (defexport getBlockParameterValue axefx/get-block-parameter-value)
 (defexport getBlockParametersList axefx/get-block-parameters-list)
