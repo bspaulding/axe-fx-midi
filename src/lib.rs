@@ -1,20 +1,35 @@
 type MidiMessage = Vec<usize>;
 
-enum FractalModel {
-    Standard = 0x00,
-    Ultra = 0x01,
-    MFC101 = 0x02,
-    II = 0x03,
-    MFC101MK3 = 0x04,
-    FX8 = 0x05,
-    IIXL = 0x06,
-    IIXLPlus = 0x07,
-    AX8 = 0x08,
-    FX8MK2 = 0x0A,
-    III = 0x10,
+#[derive(PartialEq, Debug)]
+pub enum FractalModel {
+    Standard,
+    Ultra,
+    MFC101,
+    II,
+    MFC101MK3,
+    FX8,
+    IIXL,
+    IIXLPlus,
+    AX8,
+    FX8MK2,
+    III,
 }
 
-// let header = vec![0xF0, 0x00, 0x01, 0x74];
+fn model_code(model: FractalModel) -> usize {
+    match model {
+        FractalModel::Standard => 0x00,
+        FractalModel::Ultra => 0x01,
+        FractalModel::MFC101 => 0x02,
+        FractalModel::II => 0x03,
+        FractalModel::MFC101MK3 => 0x04,
+        FractalModel::FX8 => 0x05,
+        FractalModel::IIXL => 0x06,
+        FractalModel::IIXLPlus => 0x07,
+        FractalModel::AX8 => 0x08,
+        FractalModel::FX8MK2 => 0x0A,
+        FractalModel::III => 0x10,
+    }
+}
 
 pub fn checksum(msg: MidiMessage) -> usize {
     let xord = msg
@@ -39,6 +54,15 @@ pub fn with_checksum(msg: MidiMessage) -> MidiMessage {
     [msg_without_term, vec![msg_checksum, *term]].concat()
 }
 
+fn wrap_msg(msg: MidiMessage) -> MidiMessage {
+    let header = vec![0xF0, 0x00, 0x01, 0x74];
+    with_checksum([header, msg, vec![0xF7]].concat())
+}
+
+pub fn get_preset_number(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x14])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -60,6 +84,23 @@ mod tests {
         assert_eq!(
             vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x14, 18, 0xF7],
             with_checksum(vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x14, 0xF7])
+        );
+    }
+
+    #[test]
+    fn test_get_preset_number() {
+        assert_eq!(
+            vec![
+                0xF0,
+                0x00,
+                0x01,
+                0x74,
+                model_code(FractalModel::II),
+                0x14,
+                18,
+                0xF7
+            ],
+            get_preset_number(FractalModel::II)
         );
     }
 }
