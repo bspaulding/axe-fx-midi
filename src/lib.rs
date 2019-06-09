@@ -203,4 +203,12 @@ mod tests {
             set_current_preset_name(FractalModel::II, "O Praise The Name (Anástasis)")
         );
     }
+
+    #[test]
+    fn test_parse_current_preset_name() {
+        assert_eq!(
+            parse_message(vec![240 ,0 ,1 ,116 ,3 ,15 ,66 ,83 ,32 ,65 ,67 ,50 ,48 ,32 ,66 ,97 ,115 ,101 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,0 ,13 ,247]),
+            FractalMessage::CurrentPresetName("BS AC20 Base".to_string())
+        );
+    }
 }
