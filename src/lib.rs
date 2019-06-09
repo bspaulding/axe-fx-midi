@@ -72,6 +72,27 @@ pub fn set_preset_number(model: FractalModel, n: usize) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x3C, a, b])
 }
 
+fn decode_preset_number(lsb: usize, rsb: usize) -> usize {
+    ((lsb & 0x7F) << 7) | rsb
+}
+
+#[derive(PartialEq, Debug)]
+pub enum FractalMessage {
+    Unknown(MidiMessage),
+    CurrentPresetNumber(usize),
+}
+
+pub fn parse_message(msg: MidiMessage) -> FractalMessage {
+    let function_id = msg.iter().nth(5).unwrap();
+    match function_id {
+        20 => FractalMessage::CurrentPresetNumber(decode_preset_number(
+            *msg.iter().nth(6).unwrap(),
+            *msg.iter().nth(7).unwrap(),
+        )),
+        _ => FractalMessage::Unknown(msg),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -144,6 +165,18 @@ mod tests {
                 0xF7
             ],
             set_preset_number(FractalModel::II, 128)
+        );
+    }
+
+    #[test]
+    fn test_parse_message_preset_number() {
+        assert_eq!(
+            FractalMessage::CurrentPresetNumber(235),
+            parse_message(vec![240, 0, 1, 116, 3, 20, 1, 107, 120, 247])
+        );
+        assert_eq!(
+            FractalMessage::CurrentPresetNumber(236),
+            parse_message(vec![240, 0, 1, 116, 3, 20, 1, 108, 121, 247])
         );
     }
 }
