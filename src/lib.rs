@@ -2,7 +2,7 @@ mod parse;
 
 pub use parse::{parse_message, FractalMessage };
 
-type MidiMessage = Vec<usize>;
+type MidiMessage = Vec<u32>;
 
 #[derive(PartialEq, Debug)]
 pub enum FractalModel {
@@ -19,7 +19,7 @@ pub enum FractalModel {
     III,
 }
 
-fn model_code(model: FractalModel) -> usize {
+fn model_code(model: FractalModel) -> u32 {
     match model {
         FractalModel::Standard => 0x00,
         FractalModel::Ultra => 0x01,
@@ -35,11 +35,11 @@ fn model_code(model: FractalModel) -> usize {
     }
 }
 
-pub fn checksum(msg: MidiMessage) -> usize {
+pub fn checksum(msg: MidiMessage) -> u32 {
     let xord = msg
         .iter()
         .take(msg.len() - 1)
-        .fold(None, |acc: Option<usize>, x| match acc {
+        .fold(None, |acc: Option<u32>, x| match acc {
             Some(y) => Some(y ^ x),
             None => Some(*x),
         })
@@ -54,7 +54,7 @@ pub fn with_checksum(msg: MidiMessage) -> MidiMessage {
         .clone()
         .into_iter()
         .take(msg.len() - 1)
-        .collect::<Vec<usize>>();
+        .collect::<Vec<u32>>();
     [msg_without_term, vec![msg_checksum, *term]].concat()
 }
 
@@ -71,13 +71,21 @@ pub fn get_current_preset_name(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x0F])
 }
 
-fn encode_preset_number(n: usize) -> (usize, usize) {
+fn encode_preset_number(n: u32) -> (u32, u32) {
     (n >> 7, n & 0x7F)
 }
 
-pub fn set_preset_number(model: FractalModel, n: usize) -> MidiMessage {
+pub fn set_preset_number(model: FractalModel, n: u32) -> MidiMessage {
     let (a, b) = encode_preset_number(n);
     wrap_msg(vec![model_code(model), 0x3C, a, b])
+}
+
+pub fn set_current_preset_name(model: FractalModel, name: &str) -> MidiMessage {
+    let namesci: Vec<u32> = name.chars()
+        .filter(|c| c.is_ascii())
+        .map(|c| c as u32).collect();
+    let pad: Vec<u32> = (0..(32 - namesci.len())).map(|_| 32).collect();
+    wrap_msg([vec![model_code(model), 0x09], namesci, pad].concat())
 }
 
 #[cfg(test)]
@@ -181,6 +189,18 @@ mod tests {
                 0xF7
             ],
             get_current_preset_name(FractalModel::II)
+        );
+    }
+
+    #[test]
+    fn test_set_current_preset_name() {
+        assert_eq!(
+            vec![0xF0 ,0x00 ,0x01 ,0x74 ,model_code(FractalModel::II) ,0x09 ,0x43 ,0x68 ,0x61 ,0x6E ,0x67 ,0x65 ,0x64 ,0x21 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x20 ,0x6C ,0xF7],
+            set_current_preset_name(FractalModel::II, "Changed!")
+        );
+        assert_eq!(
+            set_current_preset_name(FractalModel::II, "O Praise The Name (Anstasis)"),
+            set_current_preset_name(FractalModel::II, "O Praise The Name (Anástasis)")
         );
     }
 }

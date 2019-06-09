@@ -1,13 +1,13 @@
 use crate::MidiMessage;
 
-fn decode_preset_number(lsb: usize, rsb: usize) -> usize {
+fn decode_preset_number(lsb: u32, rsb: u32) -> u32 {
     ((lsb & 0x7F) << 7) | rsb
 }
 
 #[derive(PartialEq, Debug)]
 pub enum FractalMessage {
     Unknown(MidiMessage),
-    CurrentPresetNumber(usize),
+    CurrentPresetNumber(u32),
 }
 
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
