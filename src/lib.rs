@@ -63,6 +63,15 @@ pub fn get_preset_number(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x14])
 }
 
+fn encode_preset_number(n: usize) -> (usize, usize) {
+    (n >> 7, n & 0x7F)
+}
+
+pub fn set_preset_number(model: FractalModel, n: usize) -> MidiMessage {
+    let (a, b) = encode_preset_number(n);
+    wrap_msg(vec![model_code(model), 0x3C, a, b])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -101,6 +110,40 @@ mod tests {
                 0xF7
             ],
             get_preset_number(FractalModel::II)
+        );
+    }
+
+    #[test]
+    fn test_set_preset_number() {
+        assert_eq!(
+            vec![
+                0xF0,
+                0x00,
+                0x01,
+                0x74,
+                model_code(FractalModel::II),
+                0x3C,
+                0,
+                127,
+                69,
+                0xF7
+            ],
+            set_preset_number(FractalModel::II, 127)
+        );
+        assert_eq!(
+            vec![
+                0xF0,
+                0x00,
+                0x01,
+                0x74,
+                model_code(FractalModel::II),
+                0x3C,
+                1,
+                0,
+                59,
+                0xF7
+            ],
+            set_preset_number(FractalModel::II, 128)
         );
     }
 }
