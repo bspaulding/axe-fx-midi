@@ -88,6 +88,10 @@ pub fn set_current_preset_name(model: FractalModel, name: &str) -> MidiMessage {
     wrap_msg([vec![model_code(model), 0x09], namesci, pad].concat())
 }
 
+pub fn get_firmware_version(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x08])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -209,6 +213,14 @@ mod tests {
         assert_eq!(
             parse_message(vec![240 ,0 ,1 ,116 ,3 ,15 ,66 ,83 ,32 ,65 ,67 ,50 ,48 ,32 ,66 ,97 ,115 ,101 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,32 ,0 ,13 ,247]),
             FractalMessage::CurrentPresetName("BS AC20 Base".to_string())
+        );
+    }
+
+    #[test]
+    fn test_get_firmware_version() {
+        assert_eq!(
+            vec![0xF0 ,0x00 ,0x01 ,0x74 ,model_code(FractalModel::II) ,0x08 ,14 ,0xF7],
+            get_firmware_version(FractalModel::II)
         );
     }
 }
