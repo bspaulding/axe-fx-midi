@@ -1,3 +1,7 @@
+mod parse;
+
+pub use parse::{parse_message, FractalMessage };
+
 type MidiMessage = Vec<usize>;
 
 #[derive(PartialEq, Debug)]
@@ -63,6 +67,10 @@ pub fn get_preset_number(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x14])
 }
 
+pub fn get_current_preset_name(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x0F])
+}
+
 fn encode_preset_number(n: usize) -> (usize, usize) {
     (n >> 7, n & 0x7F)
 }
@@ -70,27 +78,6 @@ fn encode_preset_number(n: usize) -> (usize, usize) {
 pub fn set_preset_number(model: FractalModel, n: usize) -> MidiMessage {
     let (a, b) = encode_preset_number(n);
     wrap_msg(vec![model_code(model), 0x3C, a, b])
-}
-
-fn decode_preset_number(lsb: usize, rsb: usize) -> usize {
-    ((lsb & 0x7F) << 7) | rsb
-}
-
-#[derive(PartialEq, Debug)]
-pub enum FractalMessage {
-    Unknown(MidiMessage),
-    CurrentPresetNumber(usize),
-}
-
-pub fn parse_message(msg: MidiMessage) -> FractalMessage {
-    let function_id = msg.iter().nth(5).unwrap();
-    match function_id {
-        20 => FractalMessage::CurrentPresetNumber(decode_preset_number(
-            *msg.iter().nth(6).unwrap(),
-            *msg.iter().nth(7).unwrap(),
-        )),
-        _ => FractalMessage::Unknown(msg),
-    }
 }
 
 #[cfg(test)]
@@ -177,6 +164,23 @@ mod tests {
         assert_eq!(
             FractalMessage::CurrentPresetNumber(236),
             parse_message(vec![240, 0, 1, 116, 3, 20, 1, 108, 121, 247])
+        );
+    }
+
+    #[test]
+    fn test_get_current_preset_name() {
+        assert_eq!(
+            vec![
+                0xF0,
+                0x00,
+                0x01,
+                0x74,
+                model_code(FractalModel::II),
+                0x0F,
+                9,
+                0xF7
+            ],
+            get_current_preset_name(FractalModel::II)
         );
     }
 }
