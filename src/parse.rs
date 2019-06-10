@@ -89,20 +89,22 @@ fn effect_for_id(id: u32) -> Effect {
     }
 }
 
-fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
+fn chunk<T: Clone>(xs: Vec<T>, size: usize) -> Vec<Vec<T>> {
     let mut chunks = vec![];
-    for i in (0..msg.len()).step_by(5) {
-        if i + 5 < msg.len() {
+    for i in (0..xs.len()).step_by(size) {
+        if i + size < xs.len() {
             let mut chunk = vec![];
-            chunk.push(msg[i]);
-            chunk.push(msg[i + 1]);
-            chunk.push(msg[i + 2]);
-            chunk.push(msg[i + 3]);
-            chunk.push(msg[i + 4]);
+            for k in 0..size {
+                chunk.push(xs[i + k].clone());
+            }
             chunks.push(chunk);
         }
     }
     chunks
+}
+
+fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
+    chunk(msg, 5)
         .iter()
         .map(|chunk: &Vec<u32>| {
             let a = *chunk.iter().nth(0).unwrap();
