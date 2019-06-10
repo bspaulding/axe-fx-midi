@@ -1,6 +1,6 @@
 mod parse;
 
-pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock};
+pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock, id_for_effect};
 
 type MidiMessage = Vec<u32>;
 
@@ -122,6 +122,15 @@ pub fn set_scene_number(model: FractalModel, scene_number: u32) -> MidiMessage {
 
 pub fn get_grid_layout_and_routing(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x20])
+}
+
+fn encode_effect_id(id: u32) -> (u32, u32) {
+    (id & 0x7F, (id >> 7) & 0x7F)
+}
+
+pub fn get_block_parameters(model: FractalModel, effect: Effect) -> MidiMessage {
+    let (a, b) = encode_effect_id(id_for_effect(effect));
+    wrap_msg(vec![model_code(model), 0x01, a, b])
 }
 
 #[cfg(test)]
@@ -658,6 +667,22 @@ mod tests {
                     ],
                 ]
             )
+        );
+    }
+
+    #[test]
+    fn test_get_block_parameters() {
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 0x01, 0, 1, 6, 0xF7],
+            get_block_parameters(FractalModel::II, Effect::TremoloPanner1)
+        );
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 0x01, 127, 0, 120, 0xF7],
+            get_block_parameters(FractalModel::II, Effect::VolumePan1)
+        );
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 0x01, 1, 1, 7, 0xF7],
+            get_block_parameters(FractalModel::II, Effect::TremoloPanner2)
         );
     }
 }
