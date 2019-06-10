@@ -454,7 +454,21 @@ mod tests {
         );
     }
 
-    // TODO: parse set scene number
+    #[test]
+    fn test_parse_scene_number() {
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 41, 0, 47, 247]),
+            FractalMessage::CurrentSceneNumber(1)
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 41, 1, 47, 247]),
+            FractalMessage::CurrentSceneNumber(2)
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 41, 7, 47, 247]),
+            FractalMessage::CurrentSceneNumber(8)
+        );
+    }
 
     #[test]
     fn test_parse_grid_layout_and_routing() {

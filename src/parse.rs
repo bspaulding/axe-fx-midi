@@ -366,6 +366,7 @@ pub enum FractalMessage {
     Unknown(MidiMessage),
     CurrentPresetNumber(u32),
     CurrentPresetName(String),
+    CurrentSceneNumber(u8),
     FirmwareVersion {
         major: u8,
         minor: u8,
@@ -409,6 +410,7 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             msg.into_iter().skip(6).collect(),
         )),
         0x20 => FractalMessage::BlockGrid(decode_block_grid(msg.into_iter().skip(6).collect())),
+        0x29 => FractalMessage::CurrentSceneNumber(1 + *msg.iter().nth(6).unwrap() as u8),
         _ => FractalMessage::Unknown(msg),
     }
 }
