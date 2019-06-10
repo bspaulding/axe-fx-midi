@@ -112,6 +112,10 @@ pub fn toggle_metronome(midi_channel: u32, status: MetronomeStatus) -> MidiMessa
     vec![176 + (midi_channel - 1), 122, match status { MetronomeStatus::On => 127, MetronomeStatus::Off => 0 }]
 }
 
+pub fn get_preset_blocks_flags(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x0E])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -329,6 +333,14 @@ mod tests {
         assert_eq!(
             vec![176, 122, 127],
             toggle_metronome(1, MetronomeStatus::On)
+        );
+    }
+
+    #[test]
+    fn test_get_preset_blocks_flags() {
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 0x0E, 8, 0xF7],
+            get_preset_blocks_flags(FractalModel::II)
         );
     }
 }
