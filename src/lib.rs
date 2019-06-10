@@ -243,4 +243,12 @@ mod tests {
             disconnect_from_controller(FractalModel::II)
         );
     }
+
+    #[test]
+    fn test_parse_front_panel_change_detected() {
+        assert_eq!(
+            parse_message(vec![240 ,0 ,1 ,116 ,3 ,0x21, 0, 0xF7]),
+            FractalMessage::FrontPanelChangeDetected
+        );
+    }
 }
