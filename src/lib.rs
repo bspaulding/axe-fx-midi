@@ -279,4 +279,12 @@ mod tests {
             FractalMessage::MIDIChannel(10)
         );
     }
+
+    #[test]
+    fn test_parse_tuner_info() {
+        assert_eq!(
+            parse_message(vec![240 ,0 ,1 ,116 ,3 ,0x0D ,1 ,2 ,63 ,0xF7]),
+            FractalMessage::TunerInfo { note: 1, string_number: 2, tuner_data: 63 }
+        );
+    }
 }

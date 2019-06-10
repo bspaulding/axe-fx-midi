@@ -19,12 +19,21 @@ pub enum FractalMessage {
     Unknown(MidiMessage),
     CurrentPresetNumber(u32),
     CurrentPresetName(String),
-    FirmwareVersion { major: u8, minor: u8 },
+    FirmwareVersion {
+        major: u8,
+        minor: u8,
+    },
     FrontPanelChangeDetected,
     MIDITempoBeat,
     MIDIChannel(u8),
+    TunerInfo {
+        note: u8,
+        string_number: u8,
+        tuner_data: u8,
+    },
 }
 
+// TODO: Parse multi-function response
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
     let function_id = msg.iter().nth(5).unwrap();
     match function_id {
@@ -42,6 +51,11 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
         }
         0x10 => FractalMessage::MIDITempoBeat,
         0x17 => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
+        0x0D => FractalMessage::TunerInfo {
+            note: *msg.iter().nth(6).unwrap() as u8,
+            string_number: *msg.iter().nth(7).unwrap() as u8,
+            tuner_data: *msg.iter().nth(8).unwrap() as u8,
+        },
         _ => FractalMessage::Unknown(msg),
     }
 }
