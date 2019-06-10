@@ -103,6 +103,10 @@ fn chunk<T: Clone>(xs: Vec<T>, size: usize) -> Vec<Vec<T>> {
     chunks
 }
 
+fn decode_effect_id(a: &u32, b: &u32) -> u32 {
+    ((a & 0x78) >> 3) + ((b & 0x0F) << 4)
+}
+
 fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
     chunk(msg, 5)
         .iter()
@@ -112,7 +116,7 @@ fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
             let c = *chunk.iter().nth(2).unwrap();
             let d = *chunk.iter().nth(3).unwrap();
             let e = *chunk.iter().nth(4).unwrap();
-            let effect_id = ((d & 0x78) >> 3) + ((e & 0x0F) << 4);
+            let effect_id = decode_effect_id(&d, &e);
             BlockFlags {
                 is_bypassed: !(a == 3 || a == 1),
                 cc: (((b & 0x7E) >> 1) + ((c & 3) << 6)),
