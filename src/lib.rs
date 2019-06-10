@@ -223,4 +223,12 @@ mod tests {
             get_firmware_version(FractalModel::II)
         );
     }
+
+    #[test]
+    fn test_parse_firmware_version() {
+        assert_eq!(
+            parse_message(vec![240 ,0 ,1 ,116 ,3 ,8 ,0x08 ,0x02 ,0 ,0 ,0 ,0 ,0,247]),
+            FractalMessage::FirmwareVersion { major: 8, minor: 2 }
+        );
+    }
 }

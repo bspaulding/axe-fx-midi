@@ -19,6 +19,7 @@ pub enum FractalMessage {
     Unknown(MidiMessage),
     CurrentPresetNumber(u32),
     CurrentPresetName(String),
+    FirmwareVersion { major: u8, minor: u8 },
 }
 
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
@@ -28,6 +29,10 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             *msg.iter().nth(6).unwrap(),
             *msg.iter().nth(7).unwrap(),
         )),
+        0x08 => FractalMessage::FirmwareVersion {
+            major: *msg.iter().nth(6).unwrap() as u8,
+            minor: *msg.iter().nth(7).unwrap() as u8,
+        },
         0x0F => {
             FractalMessage::CurrentPresetName(decode_preset_name(msg.into_iter().skip(6).collect()))
         }
