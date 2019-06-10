@@ -251,4 +251,12 @@ mod tests {
             FractalMessage::FrontPanelChangeDetected
         );
     }
+
+    #[test]
+    fn test_parse_midi_tempo_beat() {
+        assert_eq!(
+            parse_message(vec![240, 0 ,1 ,116 ,3 ,0x10 ,0xF7]),
+            FractalMessage::MIDITempoBeat
+        );
+    }
 }
