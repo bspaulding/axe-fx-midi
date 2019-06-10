@@ -92,6 +92,10 @@ pub fn get_firmware_version(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x08])
 }
 
+pub fn disconnect_from_controller(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x42])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -229,6 +233,14 @@ mod tests {
         assert_eq!(
             parse_message(vec![240 ,0 ,1 ,116 ,3 ,8 ,0x08 ,0x02 ,0 ,0 ,0 ,0 ,0,247]),
             FractalMessage::FirmwareVersion { major: 8, minor: 2 }
+        );
+    }
+
+    #[test]
+    fn test_disconnect_from_controller() {
+        assert_eq!(
+            vec![0xF0 ,0x00 ,0x01 ,0x74 ,model_code(FractalModel::II) ,0x42 ,68 ,0xF7],
+            disconnect_from_controller(FractalModel::II)
         );
     }
 }
