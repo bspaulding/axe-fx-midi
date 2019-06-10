@@ -1,6 +1,6 @@
 mod parse;
 
-pub use parse::{parse_message, FractalMessage };
+pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags };
 
 type MidiMessage = Vec<u32>;
 
@@ -341,6 +341,92 @@ mod tests {
         assert_eq!(
             vec![240, 0, 1, 116, 3, 0x0E, 8, 0xF7],
             get_preset_blocks_flags(FractalModel::II)
+        );
+    }
+
+    #[test]
+    fn test_parse_preset_blocks_flags() {
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 14, 3, 74, 16, 83, 6, 3, 78, 24, 99, 6, 2, 86, 124, 39, 6, 3, 94, 40, 3, 7, 2, 98, 48, 43, 120, 2, 100, 52, 51, 120, 3, 102, 124, 63, 120, 2, 10, 125, 23, 7, 3, 38, 81, 115, 6, 2, 52, 125, 7, 120, 3, 58, 125, 127, 7, 247]),
+            FractalMessage::PresetBlocksFlags(vec![
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 37,
+                    effect_id: 106,
+                    effect: Effect::Amp1
+                },
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 39,
+                    effect_id: 108,
+                    effect: Effect::Cab1
+                },
+                BlockFlags {
+                    is_bypassed: true,
+                    xy_state: XYState::X,
+                    cc: 43,
+                    effect_id: 100,
+                    effect: Effect::Compressor1
+                },
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 47,
+                    effect_id: 112,
+                    effect: Effect::Delay1
+                },
+                BlockFlags {
+                    is_bypassed: true,
+                    xy_state: XYState::X,
+                    cc: 49,
+                    effect_id: 133,
+                    effect: Effect::Drive1
+                },
+                BlockFlags {
+                    is_bypassed: true,
+                    xy_state: XYState::X,
+                    cc: 50,
+                    effect_id: 134,
+                    effect: Effect::Drive2
+                },
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 51,
+                    effect_id: 135,
+                    effect: Effect::Enhancer
+                },
+                BlockFlags {
+                    is_bypassed: true,
+                    xy_state: XYState::X,
+                    cc: 69,
+                    effect_id: 114,
+                    effect: Effect::MultiDelay1
+                },
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 83,
+                    effect_id: 110,
+                    effect: Effect::Reverb1
+                },
+                BlockFlags {
+                    is_bypassed: true,
+                    xy_state: XYState::X,
+                    cc: 90,
+                    effect_id: 128,
+                    effect: Effect::TremoloPanner1
+                },
+                BlockFlags {
+                    is_bypassed: false,
+                    xy_state: XYState::X,
+                    cc: 93,
+                    effect_id: 127,
+                    effect: Effect::VolumePan1
+                },
+            ])
         );
     }
 }
