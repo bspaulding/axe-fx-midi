@@ -133,6 +133,11 @@ pub fn get_block_parameters(model: FractalModel, effect: Effect) -> MidiMessage 
     wrap_msg(vec![model_code(model), 0x01, a, b])
 }
 
+pub fn store_in_preset(model: FractalModel, preset_number: u32) -> MidiMessage {
+    let (a, b) = encode_preset_number(preset_number);
+    wrap_msg(vec![model_code(model), 0x1D, a, b])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -767,6 +772,14 @@ mod tests {
                 parameter: Parameter::HighCutFrequency,
                 value_raw: 55670
             }
+        );
+    }
+
+    #[test]
+    fn test_store_in_preset() {
+        assert_eq!(
+            vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x1D, 0x01, 0x59, 0x43, 0xF7],
+            store_in_preset(FractalModel::II, 217)
         );
     }
 }
