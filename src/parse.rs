@@ -22,6 +22,7 @@ pub enum FractalMessage {
     FirmwareVersion { major: u8, minor: u8 },
     FrontPanelChangeDetected,
     MIDITempoBeat,
+    MIDIChannel(u8),
 }
 
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
@@ -40,6 +41,7 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             FractalMessage::CurrentPresetName(decode_preset_name(msg.into_iter().skip(6).collect()))
         }
         0x10 => FractalMessage::MIDITempoBeat,
+        0x17 => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
         _ => FractalMessage::Unknown(msg),
     }
 }

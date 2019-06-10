@@ -271,4 +271,12 @@ mod tests {
             get_midi_channel(FractalModel::II)
         );
     }
+
+    #[test]
+    fn test_parse_midi_channel() {
+        assert_eq!(
+            parse_message(vec![240 ,0 ,1 ,116 ,3 ,0x17 ,9 ,0,0xF7]),
+            FractalMessage::MIDIChannel(10)
+        );
+    }
 }
