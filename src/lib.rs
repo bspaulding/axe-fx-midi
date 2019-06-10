@@ -100,6 +100,12 @@ pub fn get_midi_channel(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x17])
 }
 
+pub enum TunerStatus { On, Off }
+
+pub fn toggle_tuner(midi_channel: u32, tuner_status: TunerStatus) -> MidiMessage {
+    vec![176 + (midi_channel - 1), 15, match tuner_status { TunerStatus::On => 127, TunerStatus::Off => 0 }]
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -285,6 +291,22 @@ mod tests {
         assert_eq!(
             parse_message(vec![240 ,0 ,1 ,116 ,3 ,0x0D ,1 ,2 ,63 ,0xF7]),
             FractalMessage::TunerInfo { note: 1, string_number: 2, tuner_data: 63 }
+        );
+    }
+
+    #[test]
+    fn test_toggle_tuner() {
+        assert_eq!(
+            vec![176, 15, 0],
+            toggle_tuner(1, TunerStatus::Off)
+        );
+        assert_eq!(
+            vec![177, 15, 0],
+            toggle_tuner(2, TunerStatus::Off)
+        );
+        assert_eq!(
+            vec![176, 15, 127],
+            toggle_tuner(1, TunerStatus::On)
         );
     }
 }
