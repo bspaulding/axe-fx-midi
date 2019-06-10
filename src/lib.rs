@@ -106,6 +106,12 @@ pub fn toggle_tuner(midi_channel: u32, tuner_status: TunerStatus) -> MidiMessage
     vec![176 + (midi_channel - 1), 15, match tuner_status { TunerStatus::On => 127, TunerStatus::Off => 0 }]
 }
 
+pub enum MetronomeStatus { On, Off }
+
+pub fn toggle_metronome(midi_channel: u32, status: MetronomeStatus) -> MidiMessage {
+    vec![176 + (midi_channel - 1), 122, match status { MetronomeStatus::On => 127, MetronomeStatus::Off => 0 }]
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -307,6 +313,22 @@ mod tests {
         assert_eq!(
             vec![176, 15, 127],
             toggle_tuner(1, TunerStatus::On)
+        );
+    }
+
+    #[test]
+    fn test_toggle_metronome() {
+        assert_eq!(
+            vec![176, 122, 0],
+            toggle_metronome(1, MetronomeStatus::Off)
+        );
+        assert_eq!(
+            vec![177, 122, 0],
+            toggle_metronome(2, MetronomeStatus::Off)
+        );
+        assert_eq!(
+            vec![176, 122, 127],
+            toggle_metronome(1, MetronomeStatus::On)
         );
     }
 }
