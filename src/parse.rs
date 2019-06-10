@@ -85,6 +85,7 @@ fn effect_for_id(id: u32) -> Effect {
         168 => Effect::VolumePan4,
         124 => Effect::Wah1,
         125 => Effect::Wah2,
+        207 => Effect::Shunt,
         _ => Effect::Unknown,
     }
 }
@@ -104,6 +105,10 @@ fn chunk<T: Clone>(xs: Vec<T>, size: usize) -> Vec<Vec<T>> {
 }
 
 fn decode_effect_id(a: &u32, b: &u32) -> u32 {
+    (a & 0x7F) | ((b & 0x7F) << 7)
+}
+
+fn decode_blocks_flags_effect_id(a: &u32, b: &u32) -> u32 {
     ((a & 0x78) >> 3) + ((b & 0x0F) << 4)
 }
 
@@ -116,7 +121,7 @@ fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
             let c = *chunk.iter().nth(2).unwrap();
             let d = *chunk.iter().nth(3).unwrap();
             let e = *chunk.iter().nth(4).unwrap();
-            let effect_id = decode_effect_id(&d, &e);
+            let effect_id = decode_blocks_flags_effect_id(&d, &e);
             BlockFlags {
                 is_bypassed: !(a == 3 || a == 1),
                 cc: (((b & 0x7E) >> 1) + ((c & 3) << 6)),
@@ -198,6 +203,7 @@ pub enum Effect {
     Reverb2,
     RotarySpeaker1,
     RotarySpeaker2,
+    Shunt,
     Synth1,
     Synth2,
     TremoloPanner1,
@@ -222,6 +228,140 @@ pub struct BlockFlags {
 }
 
 #[derive(PartialEq, Debug)]
+pub enum BlockGridBlock {
+    EffectBlock {
+        effect_id: u32,
+        effect: Effect,
+        connect_row_1: bool,
+        connect_row_2: bool,
+        connect_row_3: bool,
+        connect_row_4: bool,
+    },
+    Empty,
+}
+
+fn decode_block_grid_block(msg: &[u32]) -> BlockGridBlock {
+    let a = &msg[0];
+    let b = &msg[1];
+    let c = &msg[2];
+    let d = &msg[3];
+    let effect_id = decode_effect_id(a, b);
+    match effect_id {
+        0 => BlockGridBlock::Empty,
+        _ => BlockGridBlock::EffectBlock {
+            effect_id,
+            effect: effect_for_id(effect_id),
+            connect_row_1: 0 != (c & 1),
+            connect_row_2: 0 != (c & 2),
+            connect_row_3: 0 != (c & 4),
+            connect_row_4: 0 != (c & 8),
+        },
+    }
+}
+
+fn decode_block_grid(msg: MidiMessage) -> [[BlockGridBlock; 4]; 16] {
+    let cells = chunk(msg, 4);
+    [
+        [
+            decode_block_grid_block(&cells[0][0..4]),
+            decode_block_grid_block(&cells[1][0..4]),
+            decode_block_grid_block(&cells[2][0..4]),
+            decode_block_grid_block(&cells[3][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[4][0..4]),
+            decode_block_grid_block(&cells[5][0..4]),
+            decode_block_grid_block(&cells[6][0..4]),
+            decode_block_grid_block(&cells[7][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[8][0..4]),
+            decode_block_grid_block(&cells[9][0..4]),
+            decode_block_grid_block(&cells[10][0..4]),
+            decode_block_grid_block(&cells[11][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[12][0..4]),
+            decode_block_grid_block(&cells[13][0..4]),
+            decode_block_grid_block(&cells[14][0..4]),
+            decode_block_grid_block(&cells[15][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[16][0..4]),
+            decode_block_grid_block(&cells[17][0..4]),
+            decode_block_grid_block(&cells[18][0..4]),
+            decode_block_grid_block(&cells[19][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[20][0..4]),
+            decode_block_grid_block(&cells[21][0..4]),
+            decode_block_grid_block(&cells[22][0..4]),
+            decode_block_grid_block(&cells[23][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[24][0..4]),
+            decode_block_grid_block(&cells[25][0..4]),
+            decode_block_grid_block(&cells[26][0..4]),
+            decode_block_grid_block(&cells[27][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[28][0..4]),
+            decode_block_grid_block(&cells[29][0..4]),
+            decode_block_grid_block(&cells[30][0..4]),
+            decode_block_grid_block(&cells[31][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[32][0..4]),
+            decode_block_grid_block(&cells[33][0..4]),
+            decode_block_grid_block(&cells[34][0..4]),
+            decode_block_grid_block(&cells[35][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[36][0..4]),
+            decode_block_grid_block(&cells[37][0..4]),
+            decode_block_grid_block(&cells[38][0..4]),
+            decode_block_grid_block(&cells[39][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[40][0..4]),
+            decode_block_grid_block(&cells[41][0..4]),
+            decode_block_grid_block(&cells[42][0..4]),
+            decode_block_grid_block(&cells[43][0..4]),
+        ],
+        [
+            decode_block_grid_block(&cells[44][0..4]),
+            decode_block_grid_block(&cells[45][0..4]),
+            decode_block_grid_block(&cells[46][0..4]),
+            decode_block_grid_block(&cells[47][0..4]),
+        ],
+        [
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+        ],
+        [
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+        ],
+        [
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+        ],
+        [
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+            BlockGridBlock::Empty,
+        ],
+    ]
+}
+
+#[derive(PartialEq, Debug)]
 pub enum FractalMessage {
     Unknown(MidiMessage),
     CurrentPresetNumber(u32),
@@ -239,6 +379,7 @@ pub enum FractalMessage {
         tuner_data: u8,
     },
     PresetBlocksFlags(Vec<BlockFlags>),
+    BlockGrid([[BlockGridBlock; 4]; 16]),
 }
 
 // TODO: Parse multi-function response
@@ -267,6 +408,7 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
         0x0E => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
             msg.into_iter().skip(6).collect(),
         )),
+        0x20 => FractalMessage::BlockGrid(decode_block_grid(msg.into_iter().skip(6).collect())),
         _ => FractalMessage::Unknown(msg),
     }
 }

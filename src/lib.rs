@@ -1,6 +1,6 @@
 mod parse;
 
-pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags };
+pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock};
 
 type MidiMessage = Vec<u32>;
 
@@ -451,6 +451,199 @@ mod tests {
         assert_eq!(
             vec![240, 0, 1, 116, 3, 0x20, 38, 0xF7],
             get_grid_layout_and_routing(FractalModel::II)
+        );
+    }
+
+    // TODO: parse set scene number
+
+    #[test]
+    fn test_parse_grid_layout_and_routing() {
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 32, 0, 0, 0, 0, 127, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 106, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 79, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 112, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 114, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 110, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 29, 247]),
+            FractalMessage::BlockGrid(
+                [
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 127,
+                            effect: Effect::VolumePan1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 100,
+                            effect: Effect::Compressor1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 128,
+                            effect: Effect::TremoloPanner1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 133,
+                            effect: Effect::Drive1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 134,
+                            effect: Effect::Drive2,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 106,
+                            effect: Effect::Amp1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 108,
+                            effect: Effect::Cab1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 207,
+                            effect: Effect::Shunt,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 112,
+                            effect: Effect::Delay1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 114,
+                            effect: Effect::MultiDelay1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 110,
+                            effect: Effect::Reverb1,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::EffectBlock {
+                            effect_id: 135,
+                            effect: Effect::Enhancer,
+                            connect_row_1: false,
+                            connect_row_2: true,
+                            connect_row_3: false,
+                            connect_row_4: false,
+                        },
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                    [
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                        BlockGridBlock::Empty,
+                    ],
+                ]
+            )
         );
     }
 }
