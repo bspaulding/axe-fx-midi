@@ -1,6 +1,6 @@
 mod parse;
 
-pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock, id_for_effect};
+pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock, id_for_effect, Parameter};
 
 type MidiMessage = Vec<u32>;
 
@@ -683,6 +683,90 @@ mod tests {
         assert_eq!(
             vec![240, 0, 1, 116, 3, 0x01, 1, 1, 7, 0xF7],
             get_block_parameters(FractalModel::II, Effect::TremoloPanner2)
+        );
+    }
+
+    #[test]
+    fn test_parse_block_parameters() {
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 0, 0, 109, 1, 0, 116, 0, 0, 2, 2, 65, 67, 45, 50, 48, 32, 49, 50, 65, 88, 55, 32, 66, 0, 55, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 0,
+                parameter: Parameter::EffectType,
+                value_raw: 237
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 1, 0, 75, 104, 0, 25, 0, 0, 0, 0, 50, 46, 48, 52, 0, 78, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 1,
+                parameter: Parameter::InputDrive,
+                value_raw: 13387
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 2, 0, 110, 70, 1, 49, 0, 0, 0, 0, 51, 46, 56, 56, 0, 106, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 2,
+                parameter: Parameter::Bass,
+                value_raw: 25454
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 3, 0, 25, 29, 3, 102, 0, 0, 0, 0, 56, 46, 48, 55, 0, 30, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 3,
+                parameter: Parameter::Middle,
+                value_raw: 52889
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 4, 0, 24, 51, 2, 76, 0, 0, 0, 0, 54, 46, 48, 48, 0, 20, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 4,
+                parameter: Parameter::Treble,
+                value_raw: 39320
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 5, 0, 126, 127, 3, 127, 0, 0, 0, 0, 49, 48, 46, 48, 48, 0, 58, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 5,
+                parameter: Parameter::MasterVolume,
+                value_raw: 65534
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 49, 48, 46, 48, 32, 72, 122, 0, 102, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 6,
+                parameter: Parameter::PreampLowCut,
+                value_raw: 0
+            }
+        );
+        assert_eq!(
+            parse_message(vec![240, 0, 1, 116, 3, 1, 106, 0, 7, 0, 118, 50, 3, 107, 0, 0, 0, 0, 50, 48, 48, 48, 48, 32, 72, 122, 0, 102, 247]),
+            FractalMessage::BlockParameters {
+                effect_id: 106,
+                effect: Effect::Amp1,
+                parameter_id: 7,
+                parameter: Parameter::HighCutFrequency,
+                value_raw: 55670
+            }
         );
     }
 }

@@ -294,6 +294,19 @@ pub enum Effect {
 }
 
 #[derive(PartialEq, Debug)]
+pub enum Parameter {
+    EffectType,
+    InputDrive,
+    Bass,
+    Middle,
+    Treble,
+    MasterVolume,
+    PreampLowCut,
+    HighCutFrequency,
+    Unknown,
+}
+
+#[derive(PartialEq, Debug)]
 pub struct BlockFlags {
     pub is_bypassed: bool,
     pub xy_state: XYState,
@@ -456,6 +469,47 @@ pub enum FractalMessage {
     },
     PresetBlocksFlags(Vec<BlockFlags>),
     BlockGrid([[BlockGridBlock; 4]; 16]),
+    BlockParameters {
+        effect_id: u32,
+        effect: Effect,
+        parameter_id: u32,
+        parameter: Parameter,
+        value_raw: u32,
+    },
+}
+
+fn parameter_for_id(id: u32) -> Parameter {
+    match id {
+        0 => Parameter::EffectType,
+        1 => Parameter::InputDrive,
+        2 => Parameter::Bass,
+        3 => Parameter::Middle,
+        4 => Parameter::Treble,
+        5 => Parameter::MasterVolume,
+        6 => Parameter::PreampLowCut,
+        7 => Parameter::HighCutFrequency,
+        _ => Parameter::Unknown,
+    }
+}
+
+fn decode_parameter_value(a: u32, b: u32, c: u32) -> u32 {
+    (a & 0x7F) | ((b & 0x7F) << 7) | ((c & 0x7F) << 14)
+}
+
+fn decode_block_parameters(msg: MidiMessage) -> FractalMessage {
+    let effect_id = decode_effect_id(&msg.iter().nth(6).unwrap(), &msg.iter().nth(7).unwrap());
+    let parameter_id = decode_effect_id(&msg.iter().nth(8).unwrap(), &msg.iter().nth(9).unwrap());
+    FractalMessage::BlockParameters {
+        effect_id,
+        effect: effect_for_id(effect_id),
+        parameter_id,
+        parameter: parameter_for_id(parameter_id),
+        value_raw: decode_parameter_value(
+            *msg.iter().nth(10).unwrap(),
+            *msg.iter().nth(11).unwrap(),
+            *msg.iter().nth(12).unwrap(),
+        ),
+    }
 }
 
 // TODO: Parse multi-function response
@@ -467,6 +521,7 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             *msg.iter().nth(7).unwrap(),
         )),
         0x21 => FractalMessage::FrontPanelChangeDetected,
+        0x01 => decode_block_parameters(msg),
         0x08 => FractalMessage::FirmwareVersion {
             major: *msg.iter().nth(6).unwrap() as u8,
             minor: *msg.iter().nth(7).unwrap() as u8,
