@@ -96,6 +96,10 @@ pub fn disconnect_from_controller(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x42])
 }
 
+pub fn get_midi_channel(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x17])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -257,6 +261,14 @@ mod tests {
         assert_eq!(
             parse_message(vec![240, 0 ,1 ,116 ,3 ,0x10 ,0xF7]),
             FractalMessage::MIDITempoBeat
+        );
+    }
+
+    #[test]
+    fn test_get_midi_channel() {
+        assert_eq!(
+            vec![240 ,0 ,1 ,116 ,3 ,0x17 ,17 ,0xF7],
+            get_midi_channel(FractalModel::II)
         );
     }
 }
