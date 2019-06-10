@@ -120,6 +120,10 @@ pub fn set_scene_number(model: FractalModel, scene_number: u32) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x29, scene_number])
 }
 
+pub fn get_grid_layout_and_routing(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x20])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -439,6 +443,14 @@ mod tests {
         assert_eq!(
             vec![240, 0, 1, 116, 3, 41, 0, 47, 247],
             set_scene_number(FractalModel::II, 0)
+        );
+    }
+
+    #[test]
+    fn test_get_grid_layout_and_routing() {
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 0x20, 38, 0xF7],
+            get_grid_layout_and_routing(FractalModel::II)
         );
     }
 }
