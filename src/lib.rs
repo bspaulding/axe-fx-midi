@@ -116,6 +116,10 @@ pub fn get_preset_blocks_flags(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x0E])
 }
 
+pub fn set_scene_number(model: FractalModel, scene_number: u32) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x29, scene_number])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -427,6 +431,14 @@ mod tests {
                     effect: Effect::VolumePan1
                 },
             ])
+        );
+    }
+
+    #[test]
+    fn test_set_scene_number() {
+        assert_eq!(
+            vec![240, 0, 1, 116, 3, 41, 0, 47, 247],
+            set_scene_number(FractalModel::II, 0)
         );
     }
 }
