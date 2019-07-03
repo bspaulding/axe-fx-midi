@@ -2,7 +2,7 @@ mod parse;
 
 pub use parse::{parse_message, FractalMessage,Effect,XYState,BlockFlags,BlockGridBlock, id_for_effect, Parameter};
 
-type MidiMessage = Vec<u32>;
+pub type MidiMessage = Vec<u32>;
 
 #[derive(PartialEq, Debug)]
 pub enum FractalModel {
@@ -63,7 +63,8 @@ fn wrap_msg(msg: MidiMessage) -> MidiMessage {
     with_checksum([header, msg, vec![0xF7]].concat())
 }
 
-pub fn get_preset_number(model: FractalModel) -> MidiMessage {
+#[no_mangle]
+pub extern fn get_preset_number(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x14])
 }
 
