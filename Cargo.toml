@@ -5,3 +5,7 @@ authors = ["Bradley J. Spaulding <brad.spaulding@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+
+[lib]
+name = "axe_fx_midi"
+crate-type = ["staticlib", "cdylib"]
