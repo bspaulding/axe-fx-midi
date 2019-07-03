@@ -332,7 +332,7 @@ fn decode_block_grid_block(msg: &[u32]) -> BlockGridBlock {
     let a = &msg[0];
     let b = &msg[1];
     let c = &msg[2];
-    let d = &msg[3];
+    // let d = &msg[3];
     let effect_id = decode_effect_id(a, b);
     match effect_id {
         0 => BlockGridBlock::Empty,
