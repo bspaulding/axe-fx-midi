@@ -34,8 +34,8 @@ impl FractalModel {
     }
 }
 
-fn decode_preset_number(lsb: u8, rsb: u8) -> u8 {
-    ((lsb & 0x7F) << 7) | rsb
+fn decode_preset_number(lsb: u8, rsb: u8) -> u32 {
+    (((lsb as u32) & 0x7F) << 7) | (rsb as u32)
 }
 
 fn decode_preset_name(msg: Vec<u8>) -> String {
@@ -123,7 +123,7 @@ pub fn id_for_effect(effect: Effect) -> u8 {
         _ => 0,
     }
 }
-fn effect_for_id(id: u8) -> Effect {
+fn effect_for_id(id: u32) -> Effect {
     match id {
         2 => Effect::Control,
         100 => Effect::Compressor1,
@@ -214,11 +214,15 @@ fn chunk<T: Clone>(xs: Vec<T>, size: usize) -> Vec<Vec<T>> {
     chunks
 }
 
-fn decode_effect_id(a: &u8, b: &u8) -> u8 {
+fn decode_effect_id(a: &u8, b: &u8) -> u32 {
+    let a: u32 = (*a).into();
+    let b: u32 = (*b).into();
     (a & 0x7F) | ((b & 0x7F) << 7)
 }
 
-fn decode_blocks_flags_effect_id(a: &u8, b: &u8) -> u8 {
+fn decode_blocks_flags_effect_id(a: &u8, b: &u8) -> u32 {
+    let a: u32 = (*a).into();
+    let b: u32 = (*b).into();
     ((a & 0x78) >> 3) + ((b & 0x0F) << 4)
 }
 
@@ -347,14 +351,14 @@ pub struct BlockFlags {
     pub is_bypassed: bool,
     pub xy_state: XYState,
     pub cc: u8,
-    pub effect_id: u8,
+    pub effect_id: u32,
     pub effect: Effect,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum BlockGridBlock {
     EffectBlock {
-        effect_id: u8,
+        effect_id: u32,
         effect: Effect,
         connect_row_1: bool,
         connect_row_2: bool,
@@ -494,7 +498,8 @@ pub enum TunerStatus {
 #[derive(PartialEq, Debug)]
 pub enum FractalMessage {
     Unknown(MidiMessage),
-    CurrentPresetNumber(u8),
+    CurrentPresetNumber(u32),
+    PresetName(u32, String),
     CurrentPresetName(String),
     CurrentSceneNumber(u8),
     FirmwareVersion {
@@ -512,9 +517,9 @@ pub enum FractalMessage {
     PresetBlocksFlags(Vec<BlockFlags>),
     BlockGrid([[BlockGridBlock; 4]; 16]),
     BlockParameters {
-        effect_id: u8,
+        effect_id: u32,
         effect: Effect,
-        parameter_id: u8,
+        parameter_id: u32,
         parameter: Parameter,
         value_raw: u32,
     },
@@ -525,7 +530,7 @@ pub enum FractalMessage {
     },
 }
 
-fn parameter_for_id(id: u8) -> Parameter {
+fn parameter_for_id(id: u32) -> Parameter {
     match id {
         0 => Parameter::EffectType,
         1 => Parameter::InputDrive,
@@ -575,6 +580,10 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             major: *msg.iter().nth(6).unwrap() as u8,
             minor: *msg.iter().nth(7).unwrap() as u8,
         },
+        (FractalModel::III, 0x0D) => FractalMessage::PresetName(
+            decode_effect_id(msg.iter().nth(6).unwrap(), msg.iter().nth(7).unwrap()),
+            decode_preset_name(msg.into_iter().skip(8).collect()),
+        ),
         (_, 0x0F) => {
             FractalMessage::CurrentPresetName(decode_preset_name(msg.into_iter().skip(6).collect()))
         }

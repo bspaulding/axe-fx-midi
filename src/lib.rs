@@ -7,7 +7,7 @@ pub use parse::{
 
 pub type MidiMessage = Vec<u8>;
 
-fn guess_model(model_name: &str) -> Option<FractalModel> {
+pub fn guess_model(model_name: &str) -> Option<FractalModel> {
     match model_name {
         "Axe-Fx II" => Some(FractalModel::II),
         "Axe-Fx III" => Some(FractalModel::III),
@@ -65,14 +65,18 @@ pub extern "C" fn get_preset_number(model: FractalModel) -> MidiMessage {
 }
 
 pub fn get_current_preset_name(model: FractalModel) -> MidiMessage {
-    wrap_msg(vec![model_code(model), 0x0F])
+    if model == FractalModel::III {
+        wrap_msg(vec![model_code(model), 0x0D, 0x7F, 0x7F])
+    } else {
+        wrap_msg(vec![model_code(model), 0x0F])
+    }
 }
 
-fn encode_preset_number(n: u8) -> (u8, u8) {
-    (n >> 7, n & 0x7F)
+fn encode_preset_number(n: u32) -> (u8, u8) {
+    ((n >> 7) as u8, (n & 0x7F) as u8)
 }
 
-pub fn set_preset_number(model: FractalModel, n: u8) -> MidiMessage {
+pub fn set_preset_number(model: FractalModel, n: u32) -> MidiMessage {
     let (a, b) = encode_preset_number(n);
     wrap_msg(vec![model_code(model), 0x3C, a, b])
 }
@@ -163,7 +167,7 @@ pub fn get_block_parameters(model: FractalModel, effect: Effect) -> MidiMessage 
     wrap_msg(vec![model_code(model), 0x01, a, b])
 }
 
-pub fn store_in_preset(model: FractalModel, preset_number: u8) -> MidiMessage {
+pub fn store_in_preset(model: FractalModel, preset_number: u32) -> MidiMessage {
     let (a, b) = encode_preset_number(preset_number);
     wrap_msg(vec![model_code(model), 0x1D, a, b])
 }
@@ -273,6 +277,14 @@ mod tests {
     }
 
     #[test]
+    fn test_get_current_preset_name_axe_3() {
+        assert_eq!(
+            vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x0D, 0x7F, 0x7F, 24, 0xF7],
+            get_current_preset_name(FractalModel::III)
+        );
+    }
+
+    #[test]
     fn test_set_current_preset_name() {
         assert_eq!(
             vec![
@@ -333,6 +345,18 @@ mod tests {
                 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 0, 13, 247
             ]),
             FractalMessage::CurrentPresetName("BS AC20 Base".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_preset_name() {
+        assert_eq!(
+            parse_message(vec![
+                240, 0, 1, 116, 16, 13, 15, 3, 66, 83, 32, 65, 67, 50, 48, 32, 66, 97, 115, 101,
+                32, 83, 67, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 0, 0,
+                247
+            ]),
+            FractalMessage::PresetName(399, "BS AC20 Base SC".to_string())
         );
     }
 
@@ -913,9 +937,14 @@ mod tests {
             vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x1D, 0x01, 0x59, 0x43, 0xF7],
             store_in_preset(FractalModel::II, 217)
         );
+        assert_eq!(
+            vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x1D, 0x03, 0x0F, 0x04, 0xF7],
+            store_in_preset(FractalModel::III, 399)
+        );
     }
 
     struct TestOutput {
+        client: coremidi::Client,
         output_port: coremidi::OutputPort,
         destination: coremidi::Destination,
     }
@@ -926,20 +955,25 @@ mod tests {
             let client = Client::new("example-client").unwrap();
             let output_port = client.output_port("example-port").unwrap();
             TestOutput {
+                client,
                 destination,
                 output_port,
             }
         }
 
-        fn send_and_wait(&self, msg: &MidiMessage) {
+        fn send(&self, msg: &MidiMessage) {
             use coremidi::PacketBuffer;
-            use std::thread;
-            use std::time::Duration;
             let packet_buffer = PacketBuffer::new(0, &msg[..] as &[u8]);
             self.output_port
                 .send(&self.destination, &packet_buffer)
                 .unwrap();
-            thread::sleep(Duration::from_millis(1000));
+        }
+
+        fn send_and_wait(&self, msg: &MidiMessage) {
+            use std::thread;
+            use std::time::Duration;
+            self.send(msg);
+            thread::sleep(Duration::from_millis(300));
         }
     }
 
@@ -967,7 +1001,7 @@ mod tests {
                         }
                         let source = maybe_source.unwrap();
                         let mut currently_receiving_msg = vec![];
-                        let received_messages: Arc<Mutex<Vec<FractalMessage>>> =
+                        let received_messages: Arc<Mutex<Vec<MidiMessage>>> =
                             Arc::new(Mutex::new(vec![]));
                         let received_messages_writer = Arc::clone(&received_messages);
                         let callback = move |packet_list: &coremidi::PacketList| {
@@ -979,11 +1013,11 @@ mod tests {
                                         // sysex message end, flush and parse
                                         let parsed_message =
                                             parse_message(currently_receiving_msg.clone());
-                                        println!("Parsed Message: {:?}", parsed_message);
+                                        // println!("Parsed Message: {:?}", parsed_message);
                                         received_messages_writer
                                             .lock()
                                             .unwrap()
-                                            .push(parsed_message);
+                                            .push(currently_receiving_msg.clone());
                                         currently_receiving_msg = vec![];
                                     }
                                 }
@@ -995,22 +1029,38 @@ mod tests {
 
                         let output = TestOutput::new(destination);
 
+                        println!("Getting current preset name...");
+                        output.send_and_wait(&get_current_preset_name(model));
                         println!("Sending tuner on...");
                         output.send_and_wait(&toggle_tuner_sysex(model, TunerStatus::On));
                         println!("Sending tuner off...");
                         output.send_and_wait(&toggle_tuner_sysex(model, TunerStatus::Off));
-                        for x in [8, 7, 6, 5, 4, 3, 2, 1].iter() {
-                            println!("Setting scene to {}...", x);
+                        for x in [7, 6, 5, 4, 3, 2, 1, 0].iter() {
+                            println!("Setting scene to {}...", x + 1);
                             output.send_and_wait(&set_scene_number(model, *x));
-                            assert!(received_messages
-                                .lock()
-                                .unwrap()
-                                .contains(&FractalMessage::CurrentSceneNumber(*x)),);
                         }
+                        // println!("Trying to store in preset 389");
+                        // output.send_and_wait(&store_in_preset(model, 389));
 
-                        // let packet_buffer = PacketBuffer::new(0, &store_in_preset(model, 10)[..] as &[u8]);
-                        // output_port.send(&destination, &packet_buffer).unwrap();
-                        // thread::sleep(Duration::from_millis(1000));
+                        input_port.disconnect_source(&source).unwrap();
+
+                        println!(
+                            "Received {} messages",
+                            received_messages.lock().unwrap().len()
+                        );
+                        println!("{:?}", received_messages.lock().unwrap());
+                        let parsed_messages = received_messages
+                            .lock()
+                            .unwrap()
+                            .iter()
+                            .map(|msg| parse_message(msg.clone()))
+                            .collect::<Vec<FractalMessage>>();
+                        println!("{:?}", parsed_messages);
+                        for x in [7, 6, 5, 4, 3, 2, 1, 0].iter() {
+                            assert!(
+                                parsed_messages.contains(&FractalMessage::CurrentSceneNumber(*x)),
+                            );
+                        }
                     }
                     None => {
                         println!("Skipping output '{}', could not guess axe model", name);
