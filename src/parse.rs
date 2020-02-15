@@ -1,10 +1,44 @@
 use crate::MidiMessage;
 
-fn decode_preset_number(lsb: u32, rsb: u32) -> u32 {
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum FractalModel {
+    Standard,
+    Ultra,
+    MFC101,
+    II,
+    MFC101MK3,
+    FX8,
+    IIXL,
+    IIXLPlus,
+    AX8,
+    FX8MK2,
+    III,
+}
+
+impl FractalModel {
+    fn from_code(code: &u8) -> Option<Self> {
+        match code {
+            0x00 => Some(FractalModel::Standard),
+            0x01 => Some(FractalModel::Ultra),
+            0x02 => Some(FractalModel::MFC101),
+            0x03 => Some(FractalModel::II),
+            0x04 => Some(FractalModel::MFC101MK3),
+            0x05 => Some(FractalModel::FX8),
+            0x06 => Some(FractalModel::IIXL),
+            0x07 => Some(FractalModel::IIXLPlus),
+            0x08 => Some(FractalModel::AX8),
+            0x0A => Some(FractalModel::FX8MK2),
+            0x10 => Some(FractalModel::III),
+            _ => None,
+        }
+    }
+}
+
+fn decode_preset_number(lsb: u8, rsb: u8) -> u8 {
     ((lsb & 0x7F) << 7) | rsb
 }
 
-fn decode_preset_name(msg: Vec<u32>) -> String {
+fn decode_preset_name(msg: Vec<u8>) -> String {
     msg.iter()
         .take(32)
         .filter(|x| *x > &0)
@@ -14,7 +48,7 @@ fn decode_preset_name(msg: Vec<u32>) -> String {
         .to_string()
 }
 
-pub fn id_for_effect(effect: Effect) -> u32 {
+pub fn id_for_effect(effect: Effect) -> u8 {
     match effect {
         Effect::Compressor1 => 100,
         Effect::Compressor2 => 101,
@@ -89,8 +123,9 @@ pub fn id_for_effect(effect: Effect) -> u32 {
         _ => 0,
     }
 }
-fn effect_for_id(id: u32) -> Effect {
+fn effect_for_id(id: u8) -> Effect {
     match id {
+        2 => Effect::Control,
         100 => Effect::Compressor1,
         101 => Effect::Compressor2,
         102 => Effect::GraphicEQ1,
@@ -179,18 +214,18 @@ fn chunk<T: Clone>(xs: Vec<T>, size: usize) -> Vec<Vec<T>> {
     chunks
 }
 
-fn decode_effect_id(a: &u32, b: &u32) -> u32 {
+fn decode_effect_id(a: &u8, b: &u8) -> u8 {
     (a & 0x7F) | ((b & 0x7F) << 7)
 }
 
-fn decode_blocks_flags_effect_id(a: &u32, b: &u32) -> u32 {
+fn decode_blocks_flags_effect_id(a: &u8, b: &u8) -> u8 {
     ((a & 0x78) >> 3) + ((b & 0x0F) << 4)
 }
 
 fn decode_preset_blocks_flags(msg: MidiMessage) -> Vec<BlockFlags> {
     chunk(msg, 5)
         .iter()
-        .map(|chunk: &Vec<u32>| {
+        .map(|chunk: &Vec<u8>| {
             let a = *chunk.iter().nth(0).unwrap();
             let b = *chunk.iter().nth(1).unwrap();
             let c = *chunk.iter().nth(2).unwrap();
@@ -228,6 +263,7 @@ pub enum Effect {
     Chorus2,
     Compressor1,
     Compressor2,
+    Control,
     Controllers,
     Crossover1,
     Crossover2,
@@ -310,15 +346,15 @@ pub enum Parameter {
 pub struct BlockFlags {
     pub is_bypassed: bool,
     pub xy_state: XYState,
-    pub cc: u32,
-    pub effect_id: u32,
+    pub cc: u8,
+    pub effect_id: u8,
     pub effect: Effect,
 }
 
 #[derive(PartialEq, Debug)]
 pub enum BlockGridBlock {
     EffectBlock {
-        effect_id: u32,
+        effect_id: u8,
         effect: Effect,
         connect_row_1: bool,
         connect_row_2: bool,
@@ -328,7 +364,7 @@ pub enum BlockGridBlock {
     Empty,
 }
 
-fn decode_block_grid_block(msg: &[u32]) -> BlockGridBlock {
+fn decode_block_grid_block(msg: &[u8]) -> BlockGridBlock {
     let a = &msg[0];
     let b = &msg[1];
     let c = &msg[2];
@@ -449,10 +485,16 @@ fn decode_block_grid(msg: MidiMessage) -> [[BlockGridBlock; 4]; 16] {
     ]
 }
 
+#[derive(Debug, PartialEq)]
+pub enum TunerStatus {
+    On,
+    Off,
+}
+
 #[derive(PartialEq, Debug)]
 pub enum FractalMessage {
     Unknown(MidiMessage),
-    CurrentPresetNumber(u32),
+    CurrentPresetNumber(u8),
     CurrentPresetName(String),
     CurrentSceneNumber(u8),
     FirmwareVersion {
@@ -470,15 +512,20 @@ pub enum FractalMessage {
     PresetBlocksFlags(Vec<BlockFlags>),
     BlockGrid([[BlockGridBlock; 4]; 16]),
     BlockParameters {
-        effect_id: u32,
+        effect_id: u8,
         effect: Effect,
-        parameter_id: u32,
+        parameter_id: u8,
         parameter: Parameter,
         value_raw: u32,
     },
+    TunerStatus(TunerStatus),
+    MultipurposeResponse {
+        function_id: u8,
+        response_code: u8,
+    },
 }
 
-fn parameter_for_id(id: u32) -> Parameter {
+fn parameter_for_id(id: u8) -> Parameter {
     match id {
         0 => Parameter::EffectType,
         1 => Parameter::InputDrive,
@@ -492,8 +539,8 @@ fn parameter_for_id(id: u32) -> Parameter {
     }
 }
 
-fn decode_parameter_value(a: u32, b: u32, c: u32) -> u32 {
-    (a & 0x7F) | ((b & 0x7F) << 7) | ((c & 0x7F) << 14)
+fn decode_parameter_value(a: u8, b: u8, c: u8) -> u32 {
+    (a as u32 & 0x7F) | ((b as u32 & 0x7F) << 7) | ((c as u32 & 0x7F) << 14)
 }
 
 fn decode_block_parameters(msg: MidiMessage) -> FractalMessage {
@@ -514,33 +561,49 @@ fn decode_block_parameters(msg: MidiMessage) -> FractalMessage {
 
 // TODO: Parse multi-function response
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
+    let model_id = msg.iter().nth(4).unwrap();
+    let model = FractalModel::from_code(model_id).unwrap();
     let function_id = msg.iter().nth(5).unwrap();
-    match function_id {
-        20 => FractalMessage::CurrentPresetNumber(decode_preset_number(
+    match (model, function_id) {
+        (_, 20) => FractalMessage::CurrentPresetNumber(decode_preset_number(
             *msg.iter().nth(6).unwrap(),
             *msg.iter().nth(7).unwrap(),
         )),
-        0x21 => FractalMessage::FrontPanelChangeDetected,
-        0x01 => decode_block_parameters(msg),
-        0x08 => FractalMessage::FirmwareVersion {
+        (_, 0x21) => FractalMessage::FrontPanelChangeDetected,
+        (_, 0x01) => decode_block_parameters(msg),
+        (_, 0x08) => FractalMessage::FirmwareVersion {
             major: *msg.iter().nth(6).unwrap() as u8,
             minor: *msg.iter().nth(7).unwrap() as u8,
         },
-        0x0F => {
+        (_, 0x0F) => {
             FractalMessage::CurrentPresetName(decode_preset_name(msg.into_iter().skip(6).collect()))
         }
-        0x10 => FractalMessage::MIDITempoBeat,
-        0x17 => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
-        0x0D => FractalMessage::TunerInfo {
+        (_, 0x10) => FractalMessage::MIDITempoBeat,
+        (_, 0x11) => FractalMessage::TunerStatus(if *msg.iter().nth(6).unwrap() == 0 as u8 {
+            TunerStatus::Off
+        } else {
+            TunerStatus::On
+        }),
+        (_, 0x17) => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
+        (_, 0x0D) => FractalMessage::TunerInfo {
             note: *msg.iter().nth(6).unwrap() as u8,
             string_number: *msg.iter().nth(7).unwrap() as u8,
             tuner_data: *msg.iter().nth(8).unwrap() as u8,
         },
-        0x0E => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
+        (_, 0x0E) => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
             msg.into_iter().skip(6).collect(),
         )),
-        0x20 => FractalMessage::BlockGrid(decode_block_grid(msg.into_iter().skip(6).collect())),
-        0x29 => FractalMessage::CurrentSceneNumber(1 + *msg.iter().nth(6).unwrap() as u8),
+        (_, 0x20) => {
+            FractalMessage::BlockGrid(decode_block_grid(msg.into_iter().skip(6).collect()))
+        }
+        (_, 0x29) => FractalMessage::CurrentSceneNumber(1 + *msg.iter().nth(6).unwrap() as u8),
+        (FractalModel::III, 0x0C) => {
+            FractalMessage::CurrentSceneNumber(*msg.iter().nth(6).unwrap() as u8)
+        }
+        (_, 0x64) => FractalMessage::MultipurposeResponse {
+            function_id: *msg.iter().nth(6).unwrap() as u8,
+            response_code: *msg.iter().nth(7).unwrap() as u8,
+        },
         _ => FractalMessage::Unknown(msg),
     }
 }
