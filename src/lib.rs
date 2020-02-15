@@ -169,7 +169,31 @@ pub fn get_block_parameters(model: FractalModel, effect: Effect) -> MidiMessage 
 
 pub fn store_in_preset(model: FractalModel, preset_number: u32) -> MidiMessage {
     let (a, b) = encode_preset_number(preset_number);
-    wrap_msg(vec![model_code(model), 0x1D, a, b])
+    if model == FractalModel::III {
+        // 0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x03,
+        // 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3E, 0xF7
+        wrap_msg(vec![
+            model_code(model),
+            0x01,
+            0x26,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            b,
+            a,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+        ])
+    } else {
+        wrap_msg(vec![model_code(model), 0x1D, a, b])
+    }
 }
 
 #[cfg(test)]
@@ -938,7 +962,10 @@ mod tests {
             store_in_preset(FractalModel::II, 217)
         );
         assert_eq!(
-            vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x1D, 0x03, 0x0F, 0x04, 0xF7],
+            vec![
+                0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x26, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0F, 0x03,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x3E, 0xF7
+            ],
             store_in_preset(FractalModel::III, 399)
         );
     }
@@ -1039,8 +1066,8 @@ mod tests {
                             println!("Setting scene to {}...", x + 1);
                             output.send_and_wait(&set_scene_number(model, *x));
                         }
-                        // println!("Trying to store in preset 389");
-                        // output.send_and_wait(&store_in_preset(model, 389));
+                        println!("Trying to store in preset 389");
+                        output.send_and_wait(&store_in_preset(model, 389));
 
                         input_port.disconnect_source(&source).unwrap();
 
