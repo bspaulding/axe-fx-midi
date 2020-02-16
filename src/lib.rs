@@ -1083,8 +1083,8 @@ mod tests {
                             println!("Setting scene to {}...", x + 1);
                             output.send_and_wait(&set_scene_number(model, *x));
                         }
-                        println!("Setting tempo to 68.");
-                        output.send(&set_tempo(model, 68));
+                        println!("Setting tempo to 72.");
+                        output.send(&set_tempo(model, 72));
                         println!("Trying to store in preset 389");
                         output.send_and_wait(&store_in_preset(model, 389));
 

@@ -502,6 +502,7 @@ pub enum FractalMessage {
     PresetName(u32, String),
     CurrentPresetName(String),
     CurrentSceneNumber(u8),
+    CurrentTempo(u32),
     FirmwareVersion {
         major: u8,
         minor: u8,
@@ -570,7 +571,11 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
     let model = FractalModel::from_code(model_id).unwrap();
     let function_id = msg.iter().nth(5).unwrap();
     match (model, function_id) {
-        (_, 20) => FractalMessage::CurrentPresetNumber(decode_preset_number(
+        (FractalModel::III, 0x14) => FractalMessage::CurrentTempo(decode_effect_id(
+            msg.iter().nth(6).unwrap(),
+            msg.iter().nth(7).unwrap(),
+        )),
+        (_, 0x14) => FractalMessage::CurrentPresetNumber(decode_preset_number(
             *msg.iter().nth(6).unwrap(),
             *msg.iter().nth(7).unwrap(),
         )),
