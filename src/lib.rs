@@ -196,6 +196,11 @@ pub fn store_in_preset(model: FractalModel, preset_number: u32) -> MidiMessage {
     }
 }
 
+pub fn set_tempo(model: FractalModel, tempo: u32) -> MidiMessage {
+    let (a, b) = encode_preset_number(tempo);
+    wrap_msg(vec![model_code(model), 0x14, b, a])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -970,6 +975,18 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_set_tempo() {
+        assert_eq!(
+            vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x14, 0x46, 0x00, 0x47, 0xF7],
+            set_tempo(FractalModel::III, 70)
+        );
+        assert_eq!(
+            vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x14, 0x0C, 0x01, 0x0C, 0xF7],
+            set_tempo(FractalModel::III, 140)
+        );
+    }
+
     struct TestOutput {
         client: coremidi::Client,
         output_port: coremidi::OutputPort,
@@ -1066,6 +1083,8 @@ mod tests {
                             println!("Setting scene to {}...", x + 1);
                             output.send_and_wait(&set_scene_number(model, *x));
                         }
+                        println!("Setting tempo to 68.");
+                        output.send(&set_tempo(model, 68));
                         println!("Trying to store in preset 389");
                         output.send_and_wait(&store_in_preset(model, 389));
 
