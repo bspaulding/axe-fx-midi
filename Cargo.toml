@@ -8,6 +8,9 @@ edition = "2018"
 ascii = "1.0.0"
 coremidi = "0.3.1"
 
+[dev-dependencies]
+rand = "0.7.3"
+
 [lib]
 name = "axe_fx_midi"
 crate-type = ["staticlib", "cdylib"]
