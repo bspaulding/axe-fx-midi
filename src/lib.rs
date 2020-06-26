@@ -1169,6 +1169,13 @@ mod tests {
             set_tempo(FractalModel::III, 140)
         );
     }
+}
+
+#[cfg(target_os = "macos")]
+#[cfg(test)]
+mod test_integration {
+    use crate::*;
+    use coremidi;
 
     struct TestOutput {
         #[allow(dead_code)]
@@ -1179,8 +1186,7 @@ mod tests {
 
     impl TestOutput {
         fn new(destination: coremidi::Destination) -> Self {
-            use coremidi::Client;
-            let client = Client::new("example-client").unwrap();
+            let client = coremidi::Client::new("example-client").unwrap();
             let output_port = client.output_port("example-port").unwrap();
             TestOutput {
                 client,
@@ -1190,8 +1196,7 @@ mod tests {
         }
 
         fn send(&self, msg: &MidiMessage) {
-            use coremidi::PacketBuffer;
-            let packet_buffer = PacketBuffer::new(0, &msg[..] as &[u8]);
+            let packet_buffer = coremidi::PacketBuffer::new(0, &msg[..] as &[u8]);
             self.output_port
                 .send(&self.destination, &packet_buffer)
                 .unwrap();
@@ -1207,10 +1212,8 @@ mod tests {
 
     #[test]
     fn test_integration() {
-        extern crate coremidi;
-        use coremidi::Client;
         use std::sync::{Arc, Mutex};
-        let client = Client::new("example-client").unwrap();
+        let client = coremidi::Client::new("example-client").unwrap();
 
         for destination in coremidi::Destinations {
             match &destination.display_name() {
