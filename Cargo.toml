@@ -3,6 +3,7 @@ name = "axe_fx_midi"
 version = "0.1.0"
 authors = ["Bradley J. Spaulding <brad.spaulding@gmail.com>"]
 edition = "2018"
+license = "MIT"
 
 [dependencies]
 ascii = "1.0.0"
