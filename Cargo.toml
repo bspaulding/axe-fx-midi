@@ -16,4 +16,3 @@ coremidi = "0.3.1"
 
 [lib]
 name = "axe_fx_midi"
-crate-type = ["staticlib", "cdylib"]
