@@ -82,6 +82,13 @@ pub fn set_preset_number(model: FractalModel, n: u32) -> MidiMessage {
 }
 
 pub fn set_current_preset_name(model: FractalModel, name: &str) -> MidiMessage {
+    match model {
+        FractalModel::III => set_current_preset_name_v2(model, name),
+        _ => set_current_preset_name_v1(model, name),
+    }
+}
+
+pub fn set_current_preset_name_v1(model: FractalModel, name: &str) -> MidiMessage {
     let namesci: Vec<u8> = name
         .chars()
         .filter(|c| c.is_ascii())
@@ -91,27 +98,14 @@ pub fn set_current_preset_name(model: FractalModel, name: &str) -> MidiMessage {
     wrap_msg([vec![model_code(model), 0x09], namesci, pad].concat())
 }
 
-//           0  0  0  0 0 0 0 0
-//         128 64 32 16 8 4 2 1  128 64 32 16 8 4 2 1
-//33:        0  0  1  0 0 0 0 1
-//33->16,64: 0  0  0  1  0 0 0 0  (0) 1
-//
-//"a" => [97] => 01100001 => 00110000 01000000 => [48, 64]
-//"aa" => [97, 97] => 01100001 01100001 => 0|0110000 (0)1|011000 (0)01|00000 => 48 88 32
-//
-// x >> 1: 110000
-// last:  1000000
-fn format_vbin(xs: &Vec<u8>) -> String {
-    xs.iter()
-        .map(|x| format!("{:b}", x))
-        .collect::<Vec<String>>()
-        .join(" ")
+pub fn set_current_preset_name_v2(model: FractalModel, name: &str) -> MidiMessage {
+    set_preset_name(model, 0, name)
 }
 
-fn encode_char_iii(i: u32, last: u8, x: u8) -> (u8, u8, Option<u8>) {
+fn encode_char_iii(i: u32, last: u8, x: u8) -> (u8, u8) {
     let i = i % 7;
     println!("i: {}, i % 8: {}", i, i % 8);
-    (last | (x >> (i + 1)), 0x7F & (x << (8 - (i + 1) - 1)), None)
+    (last | (x >> (i + 1)), 0x7F & (x << (8 - (i + 1) - 1)))
 }
 
 pub fn encode_preset_name_iii(name: &str) -> MidiMessage {
@@ -120,18 +114,24 @@ pub fn encode_preset_name_iii(name: &str) -> MidiMessage {
     name.chars()
         .filter(|c| c.is_ascii())
         .map(|c| c as u8)
-        .fold(vec![0b00000000], |mut acc, x| {
-            let (last, next, nnext) = encode_char_iii(i, *acc.last().unwrap(), x);
-            println!(
-                "last: {:b} ({}), x: {:b} {}, next: {:b} ({})",
-                last, last, x, x, next, next
-            );
-            let len = acc.len();
-            i = i + 1;
-            acc[len - 1] = last;
-            acc.push(next);
-            acc
+        .collect::<Vec<u8>>()
+        .chunks(7)
+        .map(|chunk| {
+            chunk.iter().fold(vec![0b00000000], |mut acc, x| {
+                let (last, next) = encode_char_iii(i, *acc.last().unwrap(), *x);
+                println!(
+                    "last: {:b} ({}), x: {:b} {}, next: {:b} ({})",
+                    last, last, x, x, next, next,
+                );
+                let len = acc.len();
+                i = i + 1;
+                acc[len - 1] = last;
+                acc.push(next);
+                acc
+            })
         })
+        .flatten()
+        .collect::<MidiMessage>()
 }
 
 pub fn get_firmware_version(model: FractalModel) -> MidiMessage {
@@ -251,62 +251,34 @@ pub fn set_preset_name(model: FractalModel, preset_number: u32, name: &str) -> M
     // 20  02 01 00 40 20 10 08 04  02 01 00 40 20 10 08 04  |   @       @    |
     // 30  02 01 00 40 20 10 08 04  02 00 64 F7              |   @      d |
     let (a, b) = encode_preset_number(preset_number);
-    wrap_msg(vec![
-        model_code(model),
-        0x01,
-        0x28,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        b,
-        a,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x00,
-        0x20,
-        0x00,
-        0x30,
-        0x48,
-        0x04,
-        0x02,
-        0x01,
-        0x00,
-        0x40,
-        0x20,
-        0x10,
-        0x08,
-        0x04,
-        0x02,
-        0x01,
-        0x00,
-        0x40,
-        0x20,
-        0x10,
-        0x08,
-        0x04,
-        0x02,
-        0x01,
-        0x00,
-        0x40,
-        0x20,
-        0x10,
-        0x08,
-        0x04,
-        0x02,
-        0x01,
-        0x00,
-        0x40,
-        0x20,
-        0x10,
-        0x08,
-        0x04,
-        0x02,
-        0x00,
-    ])
+    let name = encode_preset_name_iii(name);
+    let pad: Vec<u8> = (0..(37 - name.len())).map(|_| 0).collect();
+    wrap_msg(
+        [
+            vec![
+                model_code(model),
+                0x01,
+                0x28,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                b,
+                a,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x20,
+                0x00,
+            ],
+            name,
+            pad,
+        ]
+        .concat(),
+    )
 }
 
 #[cfg(test)]
@@ -335,50 +307,63 @@ mod tests {
 
     #[test]
     fn test_set_preset_name() {
-        assert_eq!(
-            vec![
-                0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x48, 0x04, 0x02, 0x01, 0x00, 0x40,
-                0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
-                0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
-                0x02, 0x00, 0x64, 0xF7,
-            ],
-            set_preset_name(FractalModel::III, 389, "a")
-        );
-        assert_eq!(
-            vec![
-                0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03,
-                0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x48, 0x04, 0x02, 0x01, 0x00, 0x40,
-                0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
-                0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
-                0x02, 0x00, 0x67, 0xF7,
-            ],
-            set_preset_name(FractalModel::III, 390, "a")
-        );
-        // assert_eq!(
-        //     vec![
-        //         0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03,
-        //         0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x58, 0x24, 0x02, 0x01, 0x00, 0x40,
-        //         0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
-        //         0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
-        //         0x02, 0x00, 0x54, 0xF7
-        //     ],
-        //     set_preset_name(FractalModel::III, 389, "aa")
-        // );
+        let cases = vec![
+            (
+                FractalModel::III,
+                389,
+                "a",
+                vec![
+                    0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                    0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x40, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 106, 0xF7,
+                ],
+            ),
+            (
+                FractalModel::III,
+                390,
+                "a",
+                vec![
+                    0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06,
+                    0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x40, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 105, 0xF7,
+                ],
+            ),
+            (
+                FractalModel::III,
+                389,
+                "Changed!",
+                vec![
+                    0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+                    0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x21, 0x5A, 0x0C, 0x16, 0x73,
+                    0x1D, 0x4A, 0x64, 0x10, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 107, 0xF7,
+                ],
+            ),
+        ];
+        for (model, preset_number, name, expected) in cases {
+            let msg = set_preset_name(model, preset_number, name);
+            assert_eq!(msg.len(), expected.len());
+            assert_eq!(msg, expected, "name: {}", name);
+        }
     }
 
     #[test]
     fn test_encode_char_iii() {
         assert_eq!(
-            (0b00110000, 0b01000000, None),
+            (0b00110000, 0b01000000),
             encode_char_iii(0, 0b00000000, 0b01100001)
         );
         assert_eq!(
-            (0b01011000, 0b00100000, None),
+            (0b01011000, 0b00100000),
             encode_char_iii(1, 0b01000000, 0b01100001)
         );
         assert_eq!(
-            (0b00101100, 0b00010000, None),
+            (0b00101100, 0b00010000),
             encode_char_iii(2, 0b00100000, 0b01100001)
         );
         // assert_eq!((None, None, None), encode_char_iii(6, 0b01001010, None));
@@ -1186,6 +1171,7 @@ mod tests {
     }
 
     struct TestOutput {
+        #[allow(dead_code)]
         client: coremidi::Client,
         output_port: coremidi::OutputPort,
         destination: coremidi::Destination,
@@ -1253,9 +1239,6 @@ mod tests {
                                     currently_receiving_msg.push(byte.clone());
                                     if *byte == 0xF7 as u8 {
                                         // sysex message end, flush and parse
-                                        let parsed_message =
-                                            parse_message(currently_receiving_msg.clone());
-                                        // println!("Parsed Message: {:?}", parsed_message);
                                         received_messages_writer
                                             .lock()
                                             .unwrap()
@@ -1281,12 +1264,15 @@ mod tests {
                             println!("Setting scene to {}...", x + 1);
                             output.send_and_wait(&set_scene_number(model, *x));
                         }
-                        println!("Setting tempo to 72.");
-                        output.send(&set_tempo(model, 72));
+                        use rand::Rng;
+                        let tempo = rand::thread_rng().gen_range(60, 160);
+                        println!("Setting tempo to {}.", tempo);
+                        output.send(&set_tempo(model, tempo));
                         println!("Setting new preset name.");
                         output.send_and_wait(&set_current_preset_name(model, "Changed from Rust!"));
-                        println!("Trying to store in preset 389");
-                        output.send_and_wait(&store_in_preset(model, 389));
+                        // output.send_and_wait(&set_preset_name(model, 389, "Changed from Rust!"));
+                        // println!("Trying to store in preset 389");
+                        // output.send_and_wait(&store_in_preset(model, 389));
 
                         input_port.disconnect_source(&source).unwrap();
 
