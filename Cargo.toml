@@ -1,5 +1,6 @@
 [package]
 name = "axe_fx_midi"
+description = "Tools for creating and parsing midi messages for communicating with Fractal Axe-FX devices."
 version = "0.1.0"
 authors = ["Bradley J. Spaulding <brad.spaulding@gmail.com>"]
 edition = "2018"
