@@ -567,54 +567,59 @@ fn decode_block_parameters(msg: MidiMessage) -> FractalMessage {
 
 // TODO: Parse multi-function response
 pub fn parse_message(msg: MidiMessage) -> FractalMessage {
-    let model_id = msg.iter().nth(4).unwrap();
-    let model = FractalModel::from_code(model_id).unwrap();
-    let function_id = msg.iter().nth(5).unwrap();
+    let model: Option<FractalModel> = msg
+        .iter()
+        .nth(4)
+        .map(FractalModel::from_code)
+        .unwrap_or(None);
+    let function_id = msg.iter().nth(5);
     match (model, function_id) {
-        (FractalModel::III, 0x14) => FractalMessage::CurrentTempo(decode_effect_id(
+        (Some(FractalModel::III), Some(0x14)) => FractalMessage::CurrentTempo(decode_effect_id(
             msg.iter().nth(6).unwrap(),
             msg.iter().nth(7).unwrap(),
         )),
-        (_, 0x14) => FractalMessage::CurrentPresetNumber(decode_preset_number(
+        (_, Some(0x14)) => FractalMessage::CurrentPresetNumber(decode_preset_number(
             *msg.iter().nth(6).unwrap(),
             *msg.iter().nth(7).unwrap(),
         )),
-        (_, 0x21) => FractalMessage::FrontPanelChangeDetected,
-        (_, 0x01) => decode_block_parameters(msg),
-        (_, 0x08) => FractalMessage::FirmwareVersion {
+        (_, Some(0x21)) => FractalMessage::FrontPanelChangeDetected,
+        (_, Some(0x01)) => decode_block_parameters(msg),
+        (_, Some(0x08)) => FractalMessage::FirmwareVersion {
             major: *msg.iter().nth(6).unwrap() as u8,
             minor: *msg.iter().nth(7).unwrap() as u8,
         },
-        (FractalModel::III, 0x0D) => FractalMessage::PresetName(
+        (Some(FractalModel::III), Some(0x0D)) => FractalMessage::PresetName(
             decode_effect_id(msg.iter().nth(6).unwrap(), msg.iter().nth(7).unwrap()),
             decode_preset_name(msg.into_iter().skip(8).collect()),
         ),
-        (_, 0x0F) => {
+        (_, Some(0x0F)) => {
             FractalMessage::CurrentPresetName(decode_preset_name(msg.into_iter().skip(6).collect()))
         }
-        (_, 0x10) => FractalMessage::MIDITempoBeat,
-        (_, 0x11) => FractalMessage::TunerStatus(if *msg.iter().nth(6).unwrap() == 0 as u8 {
+        (_, Some(0x10)) => FractalMessage::MIDITempoBeat,
+        (_, Some(0x11)) => FractalMessage::TunerStatus(if *msg.iter().nth(6).unwrap() == 0 as u8 {
             TunerStatus::Off
         } else {
             TunerStatus::On
         }),
-        (_, 0x17) => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
-        (_, 0x0D) => FractalMessage::TunerInfo {
+        (_, Some(0x17)) => FractalMessage::MIDIChannel(1 + *msg.iter().nth(6).unwrap() as u8),
+        (_, Some(0x0D)) => FractalMessage::TunerInfo {
             note: *msg.iter().nth(6).unwrap() as u8,
             string_number: *msg.iter().nth(7).unwrap() as u8,
             tuner_data: *msg.iter().nth(8).unwrap() as u8,
         },
-        (_, 0x0E) => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
+        (_, Some(0x0E)) => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
             msg.into_iter().skip(6).collect(),
         )),
-        (_, 0x20) => {
+        (_, Some(0x20)) => {
             FractalMessage::BlockGrid(decode_block_grid(msg.into_iter().skip(6).collect()))
         }
-        (_, 0x29) => FractalMessage::CurrentSceneNumber(1 + *msg.iter().nth(6).unwrap() as u8),
-        (FractalModel::III, 0x0C) => {
+        (_, Some(0x29)) => {
+            FractalMessage::CurrentSceneNumber(1 + *msg.iter().nth(6).unwrap() as u8)
+        }
+        (Some(FractalModel::III), Some(0x0C)) => {
             FractalMessage::CurrentSceneNumber(*msg.iter().nth(6).unwrap() as u8)
         }
-        (_, 0x64) => FractalMessage::MultipurposeResponse {
+        (_, Some(0x64)) => FractalMessage::MultipurposeResponse {
             function_id: *msg.iter().nth(6).unwrap() as u8,
             response_code: *msg.iter().nth(7).unwrap() as u8,
         },
