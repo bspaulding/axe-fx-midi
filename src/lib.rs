@@ -1269,10 +1269,13 @@ mod tests {
                         println!("Setting tempo to {}.", tempo);
                         output.send(&set_tempo(model, tempo));
                         println!("Setting new preset name.");
-                        output.send_and_wait(&set_current_preset_name(model, "Changed from Rust!"));
+                        output.send_and_wait(&set_current_preset_name(
+                            model,
+                            &format!("Changed from Rust! {}", tempo),
+                        ));
                         // output.send_and_wait(&set_preset_name(model, 389, "Changed from Rust!"));
-                        // println!("Trying to store in preset 389");
-                        // output.send_and_wait(&store_in_preset(model, 389));
+                        println!("Trying to store in preset 389");
+                        output.send_and_wait(&store_in_preset(model, 389));
 
                         input_port.disconnect_source(&source).unwrap();
 
