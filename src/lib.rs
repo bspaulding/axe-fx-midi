@@ -91,6 +91,49 @@ pub fn set_current_preset_name(model: FractalModel, name: &str) -> MidiMessage {
     wrap_msg([vec![model_code(model), 0x09], namesci, pad].concat())
 }
 
+//           0  0  0  0 0 0 0 0
+//         128 64 32 16 8 4 2 1  128 64 32 16 8 4 2 1
+//33:        0  0  1  0 0 0 0 1
+//33->16,64: 0  0  0  1  0 0 0 0  (0) 1
+//
+//"a" => [97] => 01100001 => 00110000 01000000 => [48, 64]
+//"aa" => [97, 97] => 01100001 01100001 => 0|0110000 (0)1|011000 (0)01|00000 => 48 88 32
+//
+// x >> 1: 110000
+// last:  1000000
+fn format_vbin(xs: &Vec<u8>) -> String {
+    xs.iter()
+        .map(|x| format!("{:b}", x))
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
+fn encode_char_iii(i: u32, last: u8, x: u8) -> (u8, u8, Option<u8>) {
+    let i = i % 7;
+    println!("i: {}, i % 8: {}", i, i % 8);
+    (last | (x >> (i + 1)), 0x7F & (x << (8 - (i + 1) - 1)), None)
+}
+
+pub fn encode_preset_name_iii(name: &str) -> MidiMessage {
+    println!("----------\nencode_preset_name_iii {}\n----------", name);
+    let mut i = 0;
+    name.chars()
+        .filter(|c| c.is_ascii())
+        .map(|c| c as u8)
+        .fold(vec![0b00000000], |mut acc, x| {
+            let (last, next, nnext) = encode_char_iii(i, *acc.last().unwrap(), x);
+            println!(
+                "last: {:b} ({}), x: {:b} {}, next: {:b} ({})",
+                last, last, x, x, next, next
+            );
+            let len = acc.len();
+            i = i + 1;
+            acc[len - 1] = last;
+            acc.push(next);
+            acc
+        })
+}
+
 pub fn get_firmware_version(model: FractalModel) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x08])
 }
@@ -201,6 +244,71 @@ pub fn set_tempo(model: FractalModel, tempo: u32) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x14, b, a])
 }
 
+pub fn set_preset_name(model: FractalModel, preset_number: u32, name: &str) -> MidiMessage {
+    // a
+    // 00  F0 00 01 74 10 01 28 00  00 00 00 00 05 03 00 00  |   t  (         |
+    // 10  00 00 00 20 00 30 48 04  02 01 00 40 20 10 08 04  |     0H    @    |
+    // 20  02 01 00 40 20 10 08 04  02 01 00 40 20 10 08 04  |   @       @    |
+    // 30  02 01 00 40 20 10 08 04  02 00 64 F7              |   @      d |
+    let (a, b) = encode_preset_number(preset_number);
+    wrap_msg(vec![
+        model_code(model),
+        0x01,
+        0x28,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        b,
+        a,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x20,
+        0x00,
+        0x30,
+        0x48,
+        0x04,
+        0x02,
+        0x01,
+        0x00,
+        0x40,
+        0x20,
+        0x10,
+        0x08,
+        0x04,
+        0x02,
+        0x01,
+        0x00,
+        0x40,
+        0x20,
+        0x10,
+        0x08,
+        0x04,
+        0x02,
+        0x01,
+        0x00,
+        0x40,
+        0x20,
+        0x10,
+        0x08,
+        0x04,
+        0x02,
+        0x01,
+        0x00,
+        0x40,
+        0x20,
+        0x10,
+        0x08,
+        0x04,
+        0x02,
+        0x00,
+    ])
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -223,6 +331,96 @@ mod tests {
             vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x14, 18, 0xF7],
             with_checksum(vec![0xF0, 0x00, 0x01, 0x74, 0x03, 0x14, 0xF7])
         );
+    }
+
+    #[test]
+    fn test_set_preset_name() {
+        assert_eq!(
+            vec![
+                0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x48, 0x04, 0x02, 0x01, 0x00, 0x40,
+                0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
+                0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
+                0x02, 0x00, 0x64, 0xF7,
+            ],
+            set_preset_name(FractalModel::III, 389, "a")
+        );
+        assert_eq!(
+            vec![
+                0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x03,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x48, 0x04, 0x02, 0x01, 0x00, 0x40,
+                0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
+                0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
+                0x02, 0x00, 0x67, 0xF7,
+            ],
+            set_preset_name(FractalModel::III, 390, "a")
+        );
+        // assert_eq!(
+        //     vec![
+        //         0xF0, 0x00, 0x01, 0x74, 0x10, 0x01, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x03,
+        //         0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x30, 0x58, 0x24, 0x02, 0x01, 0x00, 0x40,
+        //         0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01,
+        //         0x00, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01, 0x00, 0x40, 0x20, 0x10, 0x08, 0x04,
+        //         0x02, 0x00, 0x54, 0xF7
+        //     ],
+        //     set_preset_name(FractalModel::III, 389, "aa")
+        // );
+    }
+
+    #[test]
+    fn test_encode_char_iii() {
+        assert_eq!(
+            (0b00110000, 0b01000000, None),
+            encode_char_iii(0, 0b00000000, 0b01100001)
+        );
+        assert_eq!(
+            (0b01011000, 0b00100000, None),
+            encode_char_iii(1, 0b01000000, 0b01100001)
+        );
+        assert_eq!(
+            (0b00101100, 0b00010000, None),
+            encode_char_iii(2, 0b00100000, 0b01100001)
+        );
+        // assert_eq!((None, None, None), encode_char_iii(6, 0b01001010, None));
+    }
+
+    #[test]
+    fn test_encode_preset_name_iii() {
+        let cases = vec![
+            (vec![0x10, 0x00], " "),
+            (vec![0x10, 0x40], "!"),
+            (vec![0x18, 0x00], "0"),
+            (vec![0x18, 0x40], "1"),
+            (vec![0x19, 0x00], "2"),
+            (vec![0x1A, 0x00], "4"),
+            (vec![0x3E, 0x00], "|"),
+            (vec![0x30, 0x40], "a"),
+            (vec![0x30, 0x58, 0x20], "aa"),
+            (vec![0x30, 0x58, 0x2C, 0x10], "aaa"),
+            (vec![0x30, 0x58, 0x2C, 0x16, 0x08], "aaaa"),
+            (vec![0x30, 0x58, 0x2C, 0x16, 0x0B, 0x04], "aaaaa"),
+            (vec![0x30, 0x58, 0x2C, 0x16, 0x0B, 0x05, 0x42], "aaaaaa"),
+            (
+                vec![0x30, 0x58, 0x2C, 0x16, 0x0B, 0x05, 0x42, 0x61],
+                "aaaaaaa",
+            ),
+            (
+                vec![0x21, 0x5A, 0x0C, 0x16, 0x73, 0x1D, 0x4A, 0x64, 0x10, 0x40],
+                "Changed!",
+            ),
+        ];
+        for (msg, name) in cases {
+            assert_eq!(
+                msg,
+                encode_preset_name_iii(name),
+                "encode name '{}', expected {}",
+                name,
+                msg.iter()
+                    .map(|x| format!("{:b}", x))
+                    .collect::<Vec<String>>()
+                    .join(" ")
+            );
+        }
     }
 
     #[test]
@@ -1085,6 +1283,8 @@ mod tests {
                         }
                         println!("Setting tempo to 72.");
                         output.send(&set_tempo(model, 72));
+                        println!("Setting new preset name.");
+                        output.send_and_wait(&set_current_preset_name(model, "Changed from Rust!"));
                         println!("Trying to store in preset 389");
                         output.send_and_wait(&store_in_preset(model, 389));
 
