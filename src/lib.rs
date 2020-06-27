@@ -72,6 +72,10 @@ pub fn get_current_preset_name(model: FractalModel) -> MidiMessage {
     }
 }
 
+pub fn get_scene_name(model: FractalModel, scene: u8) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x0E, scene])
+}
+
 fn encode_preset_number(n: u32) -> (u8, u8) {
     ((n >> 7) as u8, (n & 0x7F) as u8)
 }
@@ -569,6 +573,24 @@ mod tests {
                 247
             ]),
             FractalMessage::PresetName(399, "BS AC20 Base SC".to_string())
+        );
+    }
+
+    #[test]
+    fn test_parse_scene_name() {
+        assert_eq!(
+            parse_message(vec![
+                240, 0, 1, 116, 16, 14, 0, 67, 108, 101, 97, 110, 32, 32, 32, 32, 32, 32, 32, 32,
+                32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 0, 94, 247
+            ]),
+            FractalMessage::SceneName(0, "Clean".to_string())
+        );
+        assert_eq!(
+            parse_message(vec![
+                240, 0, 1, 116, 16, 14, 1, 79, 68, 49, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+                32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 0, 32, 247
+            ]),
+            FractalMessage::SceneName(1, "OD1".to_string())
         );
     }
 

@@ -123,6 +123,7 @@ pub fn id_for_effect(effect: Effect) -> u8 {
         _ => 0,
     }
 }
+
 fn effect_for_id(id: u32) -> Effect {
     match id {
         2 => Effect::Control,
@@ -500,6 +501,7 @@ pub enum FractalMessage {
     Unknown(MidiMessage),
     CurrentPresetNumber(u32),
     PresetName(u32, String),
+    SceneName(u8, String),
     CurrentPresetName(String),
     CurrentSceneNumber(u8),
     CurrentTempo(u32),
@@ -607,6 +609,10 @@ pub fn parse_message(msg: MidiMessage) -> FractalMessage {
             string_number: *msg.iter().nth(7).unwrap() as u8,
             tuner_data: *msg.iter().nth(8).unwrap() as u8,
         },
+        (Some(FractalModel::III), Some(0x0E)) => FractalMessage::SceneName(
+            *msg.iter().nth(6).unwrap(),
+            decode_preset_name(msg.into_iter().skip(7).collect()),
+        ),
         (_, Some(0x0E)) => FractalMessage::PresetBlocksFlags(decode_preset_blocks_flags(
             msg.into_iter().skip(6).collect(),
         )),
