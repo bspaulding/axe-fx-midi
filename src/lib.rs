@@ -288,6 +288,7 @@ pub fn set_preset_name(model: FractalModel, preset_number: u32, name: &str) -> M
 #[cfg(test)]
 mod tests {
     use crate::*;
+    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_checksum() {
