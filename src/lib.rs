@@ -72,6 +72,10 @@ pub fn get_current_preset_name(model: FractalModel) -> MidiMessage {
     }
 }
 
+pub fn get_current_scene_name(model: FractalModel) -> MidiMessage {
+    get_scene_name(model, 0x7F)
+}
+
 pub fn get_scene_name(model: FractalModel, scene: u8) -> MidiMessage {
     wrap_msg(vec![model_code(model), 0x0E, scene])
 }
@@ -285,8 +289,30 @@ pub fn set_preset_name(model: FractalModel, preset_number: u32, name: &str) -> M
     )
 }
 
+pub fn get_looper_state(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x0F, 0x7F])
+}
+
+pub enum LooperState {
+    Record = 0,
+    Play = 1,
+    Undo = 2,
+    Once = 3,
+    Reverse = 4,
+    HalfSpeed = 5,
+}
+
+pub fn set_looper_state(model: FractalModel, state: LooperState) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x0F, state as u8])
+}
+
+pub fn status_dump(model: FractalModel) -> MidiMessage {
+    wrap_msg(vec![model_code(model), 0x13])
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::parse::*;
     use crate::*;
     use pretty_assertions::assert_eq;
 
@@ -762,7 +788,7 @@ mod tests {
                     xy_state: XYState::X,
                     cc: 51,
                     effect_id: 135,
-                    effect: Effect::Enhancer
+                    effect: Effect::Enhancer1
                 },
                 BlockFlags {
                     is_bypassed: true,
@@ -1005,7 +1031,7 @@ mod tests {
                     BlockGridBlock::Empty,
                     BlockGridBlock::EffectBlock {
                         effect_id: 135,
-                        effect: Effect::Enhancer,
+                        effect: Effect::Enhancer1,
                         connect_row_1: false,
                         connect_row_2: true,
                         connect_row_3: false,
@@ -1190,6 +1216,188 @@ mod tests {
         assert_eq!(
             vec![0xF0, 0x00, 0x01, 0x74, 0x10, 0x14, 0x0C, 0x01, 0x0C, 0xF7],
             set_tempo(FractalModel::III, 140)
+        );
+    }
+
+    #[test]
+    fn test_parse_status_dump() {
+        assert_eq!(
+            parse_message(vec![
+                240, 0, 1, 116, 16, 19, 58, 0, 64, 62, 0, 64, 46, 0, 64, 70, 0, 64, 122, 0, 64, 58,
+                1, 16, 54, 1, 16, 118, 0, 66, 119, 0, 65, 37, 0, 64, 126, 0, 64, 42, 0, 64, 110, 0,
+                65, 50, 1, 64, 66, 0, 64, 67, 0, 64, 106, 0, 65, 102, 0, 64, 38, 1, 16, 73, 1, 16,
+                72, 1, 16, 9, 247,
+            ]),
+            FractalMessage::StatusDump(vec![
+                EffectStatus {
+                    effect_id: 58,
+                    effect_id_iii: Some(EffectID::ID_DISTORT1),
+                    effect: Effect::Amp1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 62,
+                    effect_id_iii: Some(EffectID::ID_CAB1),
+                    effect: Effect::Cab1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 46,
+                    effect_id_iii: Some(EffectID::ID_COMP1),
+                    effect: Effect::Compressor1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 70,
+                    effect_id_iii: Some(EffectID::ID_DELAY1),
+                    effect: Effect::Delay1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 122,
+                    effect_id_iii: Some(EffectID::ID_ENHANCER1),
+                    effect: Effect::Enhancer1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 186,
+                    effect_id_iii: Some(EffectID::ID_FBRETURN1),
+                    effect: Effect::FeedbackReturn1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 1
+                },
+                EffectStatus {
+                    effect_id: 182,
+                    effect_id_iii: Some(EffectID::ID_FBSEND1),
+                    effect: Effect::FeedbackSend1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 1
+                },
+                EffectStatus {
+                    effect_id: 118,
+                    effect_id_iii: Some(EffectID::ID_FUZZ1),
+                    effect: Effect::Drive1,
+                    bypassed: false,
+                    channel: Channel::B,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 119,
+                    effect_id_iii: Some(EffectID::ID_FUZZ2),
+                    effect: Effect::Drive2,
+                    bypassed: true,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 37,
+                    effect_id_iii: Some(EffectID::ID_INPUT1),
+                    effect: Effect::Input1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 126,
+                    effect_id_iii: Some(EffectID::ID_MIXER1),
+                    effect: Effect::Mixer1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 42,
+                    effect_id_iii: Some(EffectID::ID_OUTPUT1),
+                    effect: Effect::Output1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 110,
+                    effect_id_iii: Some(EffectID::ID_PITCH1),
+                    effect: Effect::Pitch1,
+                    bypassed: true,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 178,
+                    effect_id_iii: Some(EffectID::ID_PLEX1),
+                    effect: Effect::PlexDelay1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 66,
+                    effect_id_iii: Some(EffectID::ID_REVERB1),
+                    effect: Effect::Reverb1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 67,
+                    effect_id_iii: Some(EffectID::ID_REVERB2),
+                    effect: Effect::Reverb2,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 106,
+                    effect_id_iii: Some(EffectID::ID_TREMOLO1),
+                    effect: Effect::TremoloPanner1,
+                    bypassed: true,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 102,
+                    effect_id_iii: Some(EffectID::ID_VOLUME1),
+                    effect: Effect::VolumePan1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 4
+                },
+                EffectStatus {
+                    effect_id: 166,
+                    effect_id_iii: Some(EffectID::ID_LOOPER1),
+                    effect: Effect::Looper1,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 1
+                },
+                EffectStatus {
+                    effect_id: 201,
+                    effect_id_iii: None,
+                    effect: Effect::Unknown,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 1
+                },
+                EffectStatus {
+                    effect_id: 200,
+                    effect_id_iii: Some(EffectID::ID_PRESET_FC),
+                    effect: Effect::PresetFC,
+                    bypassed: false,
+                    channel: Channel::A,
+                    max_channels: 1
+                }
+            ]),
         );
     }
 }
