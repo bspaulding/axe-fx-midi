@@ -11,6 +11,7 @@ repository = "https://github.com/bspaulding/axe-fx-midi"
 ascii = "1.0.0"
 num-derive = "0.3.0"
 num-traits = "0.2.0"
+wasm-bindgen = "0.2"
 
 [dev-dependencies]
 rand = "0.7.3"
@@ -19,3 +20,4 @@ pretty_assertions = "0.6.1"
 
 [lib]
 name = "axe_fx_midi"
+crate-type = ["cdylib", "rlib"]
